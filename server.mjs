@@ -53,6 +53,9 @@ async function initDb() {
     )
   `);
 }
+const dbReady = initDb().catch((error) => {
+  console.error("Database initialization failed:", error.message);
+});
 
 app.get("/api/auth/session", (req, res) => res.json({ authenticated: isAuthed(req), configured: Boolean(pool && adminPassword) }));
 app.post("/api/auth/login", (req, res) => {
@@ -71,11 +74,13 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 app.get("/api/projects", requireAuth, async (req, res) => {
+  await dbReady;
   if (!ensureConfigured(res)) return;
   const { rows } = await pool.query("SELECT id, name, slug, kind, content, external_url, created_at, updated_at FROM nuke_projects ORDER BY updated_at DESC");
   res.json(rows);
 });
 app.post("/api/projects", requireAuth, async (req, res) => {
+  await dbReady;
   if (!ensureConfigured(res)) return;
   const { name, slug, kind, content, externalUrl } = req.body || {};
   if (!name?.trim() || !slug?.trim() || !["html", "external"].includes(kind)) return res.status(400).json({ error: "Name, slug, and a valid project type are required." });
@@ -93,6 +98,7 @@ app.post("/api/projects", requireAuth, async (req, res) => {
   }
 });
 app.put("/api/projects/:id", requireAuth, async (req, res) => {
+  await dbReady;
   if (!ensureConfigured(res)) return;
   const { name, slug, content, externalUrl } = req.body || {};
   if (!name?.trim() || !slug?.trim()) return res.status(400).json({ error: "Name and slug are required." });
@@ -109,6 +115,7 @@ app.put("/api/projects/:id", requireAuth, async (req, res) => {
   }
 });
 app.delete("/api/projects/:id", requireAuth, async (req, res) => {
+  await dbReady;
   if (!ensureConfigured(res)) return;
   await pool.query("DELETE FROM nuke_projects WHERE id=$1", [req.params.id]);
   res.status(204).end();
@@ -117,6 +124,7 @@ app.delete("/api/projects/:id", requireAuth, async (req, res) => {
 app.get("/:slug", async (req, res, next) => {
   if (req.params.slug.includes(".")) return next();
   if (!pool) return res.status(503).send("DATABASE_URL is not configured yet.");
+  await dbReady;
   const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE slug=$1", [req.params.slug]);
   const project = rows[0];
   if (!project) return next();
@@ -124,4 +132,8 @@ app.get("/:slug", async (req, res, next) => {
   res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${project.name.replaceAll("<", "&lt;")} · Nuke</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#090709}body{overflow:hidden}.fallback{position:fixed;bottom:18px;left:18px;padding:10px 14px;border-radius:999px;background:#f6a8cf;color:#24131d;font:600 13px system-ui;text-decoration:none}</style></head><body><iframe src="${project.external_url}" title="${project.name.replaceAll('"', "&quot;")}"></iframe><a class="fallback" href="${project.external_url}" target="_blank" rel="noreferrer">Open externally ↗</a></body></html>`);
 });
 
-initDb().then(() => app.listen(port, "0.0.0.0", () => console.info(`Nuke listening on ${port}`))).catch((error) => { console.error("Database initialization failed:", error.message); app.listen(port, "0.0.0.0", () => console.info(`Nuke listening on ${port} without database`)); });
+export { app };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(port, "0.0.0.0", () => console.info(`Nuke listening on ${port}`));
+}
