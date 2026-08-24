@@ -9,10 +9,6 @@ function login(message = "") {
   app.innerHTML = `<main class="login-page drag-stage" id="drag-stage">
     <div class="drag-copy">
       ${brand}
-      <p class="eyebrow">PRIVATE ACCESS</p>
-      <h1>Drag the mark<br>to unlock.</h1>
-      <p class="muted">Hold the logo and drag it into the ring to unlock.</p>
-      <button type="button" class="unlock-fallback" id="unlock-fallback">Trouble dragging? Unlock instead →</button>
     </div>
     <div class="zone-slot"><div class="drop-zone" id="drop-zone" aria-hidden="true"><span class="drop-ring"></span><span class="drop-label">DROP HERE</span></div></div>
     <div class="logo-slot"><button type="button" class="drag-logo" id="drag-logo" aria-label="Hold and drag to the left to unlock the login form"><img src="/nuke-logo.svg" alt="" draggable="false"></button></div>
@@ -31,7 +27,6 @@ function login(message = "") {
   const dragLogo = document.querySelector("#drag-logo");
   const dropZone = document.querySelector("#drop-zone");
   const loginCard = document.querySelector("#login-card");
-  const unlockFallback = document.querySelector("#unlock-fallback");
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
   let unlocked = false, dragging = false, startX = 0, startY = 0, originX = 0, originY = 0;
@@ -87,9 +82,6 @@ function login(message = "") {
   dragLogo.addEventListener("pointerup", pointerUp);
   dragLogo.addEventListener("pointercancel", pointerUp);
   dragLogo.style.touchAction = "none";
-
-  unlockFallback.addEventListener("click", () => unlock());
-  setTimeout(() => unlockFallback.classList.add("show"), 4500);
 
   if (message) unlock(true);
 
