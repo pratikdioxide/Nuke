@@ -587,14 +587,23 @@ button:disabled, input:disabled, textarea:disabled {
   transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
 }
-.login-card .brand { margin-bottom: var(--space-6); }
+.login-card .brand {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.login-card .brand img { width: 52px; height: 52px; }
+.login-card .brand span { font-size: 20px; letter-spacing: 0.14em; }
+.login-card { text-align: center; }
 .login-card h2 {
   font-size: clamp(22px, 3vw, 27px);
   margin: 8px 0 0;
   line-height: 1.25;
   letter-spacing: -0.01em;
 }
-.login-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-6); }
+.login-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-6); text-align: left; }
 .login-card label {
   font-size: 13px;
   color: var(--text-muted);
