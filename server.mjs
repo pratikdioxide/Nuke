@@ -129,7 +129,9 @@ app.get("/:slug", async (req, res, next) => {
   const project = rows[0];
   if (!project) return next();
   if (project.kind === "html") return res.type("html").send(project.content);
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${project.name.replaceAll("<", "&lt;")} · Nuke</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#090709}body{overflow:hidden}.fallback{position:fixed;bottom:18px;left:18px;padding:10px 14px;border-radius:999px;background:#f6a8cf;color:#24131d;font:600 13px system-ui;text-decoration:none}</style></head><body><iframe src="${project.external_url}" title="${project.name.replaceAll('"', "&quot;")}"></iframe><a class="fallback" href="${project.external_url}" target="_blank" rel="noreferrer">Open externally ↗</a></body></html>`);
+  const safeUrl = project.external_url;
+  const safeName = project.name.replaceAll("<", "&lt;");
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=${safeUrl}"><title>${safeName} · Nuke</title><style>html,body{margin:0;height:100%;background:#0B0B0D;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;color:#F5F5F5}.wrap{text-align:center}img{width:44px;height:44px;opacity:.5;animation:spin 2s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}p{color:#9A9A9E;font-size:13px;margin:14px 0 6px}a{color:#F5A9C8;font-size:13px;text-decoration:none;font-weight:600}</style></head><body><div class="wrap"><img src="/nuke-logo.svg" alt=""><p>Opening ${safeName}…</p><a href="${safeUrl}">Continue if you're not redirected →</a></div><script>location.replace(${JSON.stringify(safeUrl)});</script></body></html>`);
 });
 
 export { app };
