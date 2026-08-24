@@ -517,7 +517,7 @@ button:disabled, input:disabled, textarea:disabled {
 .empty p { margin: 0 auto var(--space-5); font-size: 14px; max-width: 320px; line-height: 1.6; }
 
 /* ==========================================================================
-   Login page — drag-to-unlock
+   Login page — decorative orbit logo doubles as a hidden unlock control
    ========================================================================== */
 .login-page {
   min-height: 100vh;
@@ -529,117 +529,47 @@ button:disabled, input:disabled, textarea:disabled {
     var(--bg);
 }
 
-/* ---- copy panel (top-right) ---- */
-.drag-copy {
-  position: absolute;
-  top: var(--space-8);
-  right: var(--space-8);
-  max-width: 320px;
-  text-align: right;
-  z-index: 3;
-}
-.drag-copy .brand { justify-content: flex-end; }
-
-/* ---- drop zone (left ring) ---- */
-.zone-slot {
-  position: absolute;
-  top: 50%;
-  left: 18%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-}
-.drop-zone {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  border: 2px dashed var(--border-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color var(--t-base) var(--ease), background var(--t-base) var(--ease), transform var(--t-base) var(--ease);
-}
-.drop-ring {
-  position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  opacity: 0.5;
-  animation: ringPulse 3s ease-in-out infinite;
-}
-@keyframes ringPulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.06); opacity: 0.15; }
-}
-.drop-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--text-faint);
-  transition: color var(--t-fast) var(--ease);
-}
-.drop-zone.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  transform: scale(1.08);
-}
-.drop-zone.active .drop-label { color: var(--accent); }
-.drop-zone.hit {
-  border-style: solid;
-  border-color: var(--success);
-  background: var(--success-soft);
-}
-.drop-zone.hit .drop-label { color: var(--success); }
-
-/* ---- draggable logo ---- */
+/* ---- the orbit logo — looks like pure decoration ---- */
 .logo-slot {
   position: absolute;
   top: 50%;
-  left: 78%;
-  transform: translate(-50%, -50%);
-  z-index: 4;
+  right: -70px;
+  transform: translateY(-50%);
+  z-index: 2;
 }
 .drag-logo {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
+  width: 220px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  cursor: grab;
+  cursor: default;
   transform: translate(0, 0);
-  transition: transform var(--t-slow) var(--ease-out), box-shadow var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
-  box-shadow: var(--shadow-md);
+  transition: transform var(--t-slow) var(--ease-out);
   touch-action: none;
   user-select: none;
 }
-.drag-logo img { width: 46px; height: 46px; object-fit: contain; pointer-events: none; }
-.drag-logo:hover { border-color: var(--border-accent); box-shadow: 0 0 0 6px var(--accent-soft); }
-.drag-logo.dragging {
-  cursor: grabbing;
-  transition: none;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 8px var(--accent-soft);
-  border-color: var(--accent);
+.drag-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0.12;
+  pointer-events: none;
+  animation: spin 60s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .drag-logo.snap-back { transition: transform var(--t-slow) var(--ease-out); }
-.drag-logo.locked-in {
-  opacity: 0;
-  transform: scale(0.4) !important;
-  border-color: var(--accent);
-  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease);
-}
+.unlocked .logo-slot { opacity: 0; transition: opacity var(--t-base) var(--ease); pointer-events: none; }
 
-/* fallback: simpler, robust lock-in animation using stage coordinates */
-.unlocked .zone-slot { transform: translate(-50%, -50%) scale(1.1); }
-.unlocked .logo-slot { opacity: 0; transition: opacity var(--t-base) var(--ease); }
-
-/* ---- the login card itself, hidden until unlocked ---- */
+/* ---- the login card, invisible until the secret drag succeeds ---- */
 .login-card {
   position: absolute;
   top: 50%;
-  left: 18%;
-  transform: translate(-50%, -50%) scale(0.9);
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
   opacity: 0;
   pointer-events: none;
   z-index: 5;
@@ -657,6 +587,7 @@ button:disabled, input:disabled, textarea:disabled {
   transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
 }
+.login-card .brand { margin-bottom: var(--space-6); }
 .login-card h2 {
   font-size: clamp(22px, 3vw, 27px);
   margin: 8px 0 0;
@@ -857,13 +788,9 @@ button:disabled, input:disabled, textarea:disabled {
 @media (max-width: 640px) {
   .project-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .modal { max-width: 92vw; }
-
-  /* Drag-to-unlock becomes vertical: logo starts low, drop ring sits up top */
-  .drag-copy { top: var(--space-6); right: var(--space-5); left: var(--space-5); max-width: none; text-align: center; }
-  .drag-copy .brand { justify-content: center; }
-  .zone-slot { top: 30%; left: 50%; }
-  .logo-slot { top: 74%; left: 50%; }
-  .login-card { top: 30%; left: 50%; max-width: 88vw; }
+  .logo-slot { width: 160px; height: 160px; }
+  .drag-logo { width: 160px; height: 160px; }
+  .login-card { max-width: 88vw; }
 }
 
 @media (max-width: 480px) {
@@ -876,9 +803,7 @@ button:disabled, input:disabled, textarea:disabled {
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions button { width: 100%; justify-content: center; }
   .card-actions .icon-btn { padding: 8px 10px; }
-  .drag-logo { width: 82px; height: 82px; }
-  .drag-logo img { width: 38px; height: 38px; }
-  .drop-zone { width: 112px; height: 112px; }
+  .drag-logo { width: 130px; height: 130px; }
 }
 
 @media (max-width: 380px) {

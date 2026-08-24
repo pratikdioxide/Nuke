@@ -7,13 +7,9 @@ const brand = `<div class="brand"><img src="/nuke-logo.svg" alt="Nuke logo"><spa
 function shell(content) { app.innerHTML = `<main class="shell"><aside class="rail">${brand}<p class="rail-note">Your private shelf<br>for the web.</p><div class="rail-bottom"><span class="status-dot"></span><span>Private mode</span></div></aside><section class="content">${content}</section></main>`; }
 function login(message = "") {
   app.innerHTML = `<main class="login-page drag-stage" id="drag-stage">
-    <div class="drag-copy">
-      ${brand}
-    </div>
-    <div class="zone-slot"><div class="drop-zone" id="drop-zone" aria-hidden="true"><span class="drop-ring"></span><span class="drop-label">DROP HERE</span></div></div>
-    <div class="logo-slot"><button type="button" class="drag-logo" id="drag-logo" aria-label="Hold and drag to the left to unlock the login form"><img src="/nuke-logo.svg" alt="" draggable="false"></button></div>
+    <div class="logo-slot"><div class="drag-logo" id="drag-logo"><img src="/nuke-logo.svg" alt="" draggable="false"></div></div>
     <div class="login-card" id="login-card">
-      <p class="eyebrow">WELCOME BACK</p>
+      ${brand}
       <h2>Enter your password</h2>
       <form id="login-form">
         <label>Password<input type="password" name="password" autocomplete="current-password" placeholder="Enter your password"></label>
@@ -25,33 +21,23 @@ function login(message = "") {
 
   const stage = document.querySelector("#drag-stage");
   const dragLogo = document.querySelector("#drag-logo");
-  const dropZone = document.querySelector("#drop-zone");
   const loginCard = document.querySelector("#login-card");
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
   let unlocked = false, dragging = false, startX = 0, startY = 0, originX = 0, originY = 0;
 
-  function overlaps() {
-    const a = dragLogo.getBoundingClientRect(), b = dropZone.getBoundingClientRect();
-    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
-  }
-
   function unlock(instant = false) {
     if (unlocked) return;
     unlocked = true;
     stage.classList.add("unlocked");
-    dragLogo.classList.add("locked-in");
-    dropZone.classList.add("hit");
-    dragLogo.style.transform = "";
     const reveal = () => { loginCard.classList.add("visible"); document.querySelector('[name="password"]')?.focus(); };
-    instant ? reveal() : setTimeout(reveal, 260);
+    instant ? reveal() : setTimeout(reveal, 200);
   }
 
   function pointerDown(e) {
     if (unlocked) return;
     dragging = true;
     dragLogo.setPointerCapture(e.pointerId);
-    dragLogo.classList.add("dragging");
     const rect = dragLogo.getBoundingClientRect();
     startX = e.clientX; startY = e.clientY;
     originX = rect.left + rect.width / 2; originY = rect.top + rect.height / 2;
@@ -60,18 +46,19 @@ function login(message = "") {
     if (!dragging) return;
     e.preventDefault();
     const stageRect = stage.getBoundingClientRect();
-    const margin = 46;
+    const margin = 60;
     const targetX = clamp(originX + (e.clientX - startX), stageRect.left + margin, stageRect.right - margin);
     const targetY = clamp(originY + (e.clientY - startY), stageRect.top + margin, stageRect.bottom - margin);
     dragLogo.style.transform = `translate(${targetX - originX}px, ${targetY - originY}px)`;
-    dropZone.classList.toggle("active", overlaps());
   }
   function pointerUp() {
     if (!dragging) return;
     dragging = false;
-    dragLogo.classList.remove("dragging");
-    if (overlaps()) { unlock(); return; }
-    dropZone.classList.remove("active");
+    const rect = dragLogo.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const draggedLeftEnough = originX - centerX > 120;
+    const onLeftSide = centerX < window.innerWidth * 0.5;
+    if (draggedLeftEnough && onLeftSide) { unlock(); return; }
     dragLogo.classList.add("snap-back");
     dragLogo.style.transform = "";
     setTimeout(() => dragLogo.classList.remove("snap-back"), 420);
