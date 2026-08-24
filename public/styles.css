@@ -517,46 +517,169 @@ button:disabled, input:disabled, textarea:disabled {
 .empty p { margin: 0 auto var(--space-5); font-size: 14px; max-width: 320px; line-height: 1.6; }
 
 /* ==========================================================================
-   Login page
+   Login page — drag-to-unlock
    ========================================================================== */
 .login-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: relative;
   overflow: hidden;
-  padding: var(--space-6);
   background:
     radial-gradient(circle at 80% 20%, rgba(245, 169, 200, 0.08), transparent 45%),
     radial-gradient(circle at 10% 90%, rgba(245, 169, 200, 0.05), transparent 40%),
     var(--bg);
 }
 
+/* ---- copy panel (top-right) ---- */
+.drag-copy {
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  max-width: 320px;
+  text-align: right;
+  z-index: 3;
+}
+.drag-copy .brand { justify-content: flex-end; margin-bottom: var(--space-6); }
+.drag-copy h1 {
+  font-size: clamp(24px, 3vw, 30px);
+  margin: 14px 0 10px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.drag-copy p.muted { font-size: 14px; line-height: 1.6; margin: 0 0 var(--space-4); }
+.unlock-fallback {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-slow) var(--ease), color var(--t-fast) var(--ease);
+}
+.unlock-fallback.show { opacity: 1; pointer-events: auto; }
+.unlock-fallback:hover { color: var(--accent); }
+
+/* ---- drop zone (left ring) ---- */
+.zone-slot {
+  position: absolute;
+  top: 50%;
+  left: 18%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+.drop-zone {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 2px dashed var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--t-base) var(--ease), background var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+}
+.drop-ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  opacity: 0.5;
+  animation: ringPulse 3s ease-in-out infinite;
+}
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.06); opacity: 0.15; }
+}
+.drop-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  transition: color var(--t-fast) var(--ease);
+}
+.drop-zone.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  transform: scale(1.08);
+}
+.drop-zone.active .drop-label { color: var(--accent); }
+.drop-zone.hit {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+.drop-zone.hit .drop-label { color: var(--success); }
+
+/* ---- draggable logo ---- */
+.logo-slot {
+  position: absolute;
+  top: 50%;
+  left: 78%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+}
+.drag-logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: grab;
+  transform: translate(0, 0);
+  transition: transform var(--t-slow) var(--ease-out), box-shadow var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+  box-shadow: var(--shadow-md);
+  touch-action: none;
+  user-select: none;
+}
+.drag-logo img { width: 46px; height: 46px; object-fit: contain; pointer-events: none; }
+.drag-logo:hover { border-color: var(--border-accent); box-shadow: 0 0 0 6px var(--accent-soft); }
+.drag-logo.dragging {
+  cursor: grabbing;
+  transition: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 8px var(--accent-soft);
+  border-color: var(--accent);
+}
+.drag-logo.snap-back { transition: transform var(--t-slow) var(--ease-out); }
+.drag-logo.locked-in {
+  opacity: 0;
+  transform: scale(0.4) !important;
+  border-color: var(--accent);
+  transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+}
+
+/* fallback: simpler, robust lock-in animation using stage coordinates */
+.unlocked .zone-slot { transform: translate(-50%, -50%) scale(1.1); }
+.unlocked .logo-slot { opacity: 0; transition: opacity var(--t-base) var(--ease); }
+
+/* ---- the login card itself, hidden until unlocked ---- */
 .login-card {
+  position: absolute;
+  top: 50%;
+  left: 18%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   width: 100%;
-  max-width: 400px;
-  z-index: 2;
+  max-width: 380px;
   box-shadow: var(--shadow-lg);
-  animation: rise var(--t-slow) var(--ease-out);
+  transition: opacity var(--t-slow) var(--ease-out), transform var(--t-slow) var(--ease-out);
 }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+.login-card.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
 }
-
-.login-card h1 {
-  font-size: clamp(24px, 3vw, 29px);
-  margin: 14px 0 10px;
+.login-card h2 {
+  font-size: clamp(22px, 3vw, 27px);
+  margin: 8px 0 0;
   line-height: 1.25;
   letter-spacing: -0.01em;
 }
-.login-card > p.muted { font-size: 14px; line-height: 1.6; margin-bottom: var(--space-2); }
-
 .login-card form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-6); }
 .login-card label {
   font-size: 13px;
@@ -579,26 +702,6 @@ button:disabled, input:disabled, textarea:disabled {
 .login-card input::placeholder { color: var(--text-faint); }
 .login-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .login-card .primary { justify-content: center; margin-top: var(--space-1); padding-block: 13px; }
-
-.login-orbit {
-  position: absolute;
-  right: -70px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: transparent;
-  z-index: 1;
-  pointer-events: none;
-}
-.login-orbit img {
-  width: 220px;
-  height: 220px;
-  opacity: 0.12;
-  animation: spin 60s linear infinite;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
 /* ==========================================================================
    Modal / editor
@@ -771,11 +874,18 @@ button:disabled, input:disabled, textarea:disabled {
 @media (max-width: 640px) {
   .project-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .modal { max-width: 92vw; }
+
+  /* Drag-to-unlock becomes vertical: logo starts low, drop ring sits up top */
+  .drag-copy { top: var(--space-6); right: var(--space-5); left: var(--space-5); max-width: none; text-align: center; }
+  .drag-copy .brand { justify-content: center; margin-bottom: var(--space-4); }
+  .drag-copy h1 { font-size: 22px; }
+  .zone-slot { top: 30%; left: 50%; }
+  .logo-slot { top: 74%; left: 50%; }
+  .login-card { top: 30%; left: 50%; max-width: 88vw; }
 }
 
 @media (max-width: 480px) {
   .login-card { padding: var(--space-6) var(--space-5); }
-  .login-orbit { display: none; }
   .top-actions { width: 100%; justify-content: flex-start; }
   .topbar { flex-direction: column; align-items: stretch; }
   .project-grid { grid-template-columns: 1fr; }
@@ -784,6 +894,9 @@ button:disabled, input:disabled, textarea:disabled {
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions button { width: 100%; justify-content: center; }
   .card-actions .icon-btn { padding: 8px 10px; }
+  .drag-logo { width: 82px; height: 82px; }
+  .drag-logo img { width: 38px; height: 38px; }
+  .drop-zone { width: 112px; height: 112px; }
 }
 
 @media (max-width: 380px) {
