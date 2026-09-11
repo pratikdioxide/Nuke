@@ -6,18 +6,30 @@ const api = async (url, options = {}) => { const r = await fetch(url, { headers:
 const brand = `<div class="brand"><img src="/nuke-logo.svg" alt="Nuke logo"><span>NUKE</span></div>`;
 
 function publicBubble(project, index) {
-  const left = 8 + ((index * 29 + 13) % 78);
-  const top = 12 + ((index * 41 + 7) % 70);
-  const duration = 34 + (index % 4) * 7;
-  const delay = -(index * 5);
-  return `<a class="public-bubble" href="/${encodeURIComponent(project.slug)}" style="left:${left}%;top:${top}%;--bubble-duration:${duration}s;--bubble-delay:${delay}s" title="Open ${esc(project.name)}">${esc(project.name)}</a>`;
+  let left = 8 + ((index * 29 + 13) % 84);
+  const top = 8 + ((index * 41 + 7) % 84);
+  if (left > 27 && left < 73 && top > 15 && top < 85) left = left < 50 ? 10 : 90;
+  return `<a class="public-bubble" href="/${encodeURIComponent(project.slug)}" style="left:${left}%;top:${top}%" title="Open ${esc(project.name)}">${esc(project.name)}</a>`;
+}
+
+function wanderBubble(bubble) {
+  const move = () => {
+    if (!bubble.isConnected) return;
+    bubble.style.setProperty("--wander-x", `${Math.round((Math.random() - 0.5) * 26)}px`);
+    bubble.style.setProperty("--wander-y", `${Math.round((Math.random() - 0.5) * 26)}px`);
+    setTimeout(move, 6500 + Math.random() * 6500);
+  };
+  move();
 }
 
 async function loadPublicBubbles() {
   try {
     const projects = await api("/api/public-projects");
     const bubbles = document.querySelector("#public-bubbles");
-    if (bubbles) bubbles.innerHTML = projects.map(publicBubble).join("");
+    if (bubbles) {
+      bubbles.innerHTML = projects.map(publicBubble).join("");
+      bubbles.querySelectorAll(".public-bubble").forEach(wanderBubble);
+    }
   } catch {
     // The private login should remain usable if the optional public list is unavailable.
   }
