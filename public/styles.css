@@ -821,6 +821,57 @@ button:disabled, input:disabled, textarea:disabled {
   .content { padding: var(--space-4) var(--space-3) 40px; }
 }
 
+/* Desktop dashboard layout: keep the shelf rail visible while the content
+   column grows and scrolls independently. The compact layout below remains
+   unchanged for tablets and phones. */
+@media (min-width: 861px) {
+  .shell {
+    display: block;
+  }
+
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 252px;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 20;
+  }
+
+  .content {
+    width: calc(100% - 252px);
+    min-height: 100vh;
+    margin-left: 252px;
+  }
+
+  .modal {
+    max-width: 860px;
+    max-height: none;
+    overflow: visible;
+    padding: 28px;
+  }
+
+  #project-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-6);
+    row-gap: var(--space-3);
+  }
+
+  #project-form > .field-label,
+  #project-form > .segmented,
+  #project-form > #kind-fields,
+  #project-form > #form-error,
+  #project-form > .modal-actions {
+    grid-column: 1 / -1;
+  }
+
+  #project-form textarea {
+    height: 180px;
+    min-height: 0;
+  }
+}
+
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
