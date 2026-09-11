@@ -1185,3 +1185,165 @@ button:disabled, input:disabled, textarea:disabled {
   .project-orbit .project-bubble:nth-child(n+4) { display: none; }
   .toast { left: 16px; right: 16px; bottom: 16px; }
 }
+
+/* Restore the original shelf and login layout. The public project bubbles
+   below are the only addition to the original screen. */
+.shell {
+  position: static;
+  overflow: visible;
+  background: transparent;
+}
+.shell > .rail,
+.shell > .content {
+  position: static;
+  z-index: auto;
+}
+.content { max-width: 1180px; }
+.login-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  isolation: auto;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(245, 169, 200, 0.08), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(245, 169, 200, 0.05), transparent 40%),
+    var(--bg);
+}
+.login-page::before,
+.login-grid,
+.login-copy,
+.login-footer { display: none; }
+.logo-slot {
+  top: 50%;
+  right: -70px;
+  left: auto;
+  width: auto;
+  height: auto;
+  transform: translateY(-50%);
+  transition: none;
+}
+.drag-logo {
+  width: 220px;
+  height: 220px;
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  cursor: default;
+  transform: translate(0, 0);
+  transition: transform var(--t-slow) var(--ease-out);
+  filter: none;
+}
+.drag-logo::before,
+.drag-track { display: none; }
+.drag-logo img {
+  position: static;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0.12;
+  filter: none;
+  pointer-events: none;
+  animation: spin 60s linear infinite;
+}
+.login-card {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.login-card .brand {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.login-card .brand img { width: 52px; height: 52px; }
+.login-card .brand span { font-size: 20px; letter-spacing: 0.14em; }
+.login-card h2 { margin: 8px 0 0; }
+.login-card form { margin-top: var(--space-6); }
+.login-card.visible { box-shadow: var(--shadow-lg); }
+.unlocked .logo-slot {
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease);
+  pointer-events: none;
+  left: auto;
+  right: -70px;
+  transform: translateY(-50%);
+}
+
+/* The only new visual on the original login screen. */
+.public-bubbles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease);
+}
+.public-bubble {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  padding: 16px;
+  border: 1px solid rgba(245, 169, 200, 0.22);
+  border-radius: 50%;
+  background: rgba(23, 23, 26, 0.76);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow: hidden;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  animation: publicBubbleRoam var(--bubble-duration) ease-in-out var(--bubble-delay) infinite alternate;
+  transition: color var(--t-base) var(--ease), border-color var(--t-base) var(--ease), background var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+}
+.public-bubble::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(245, 169, 200, 0.08);
+  border-radius: 50%;
+}
+.public-bubble:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(35, 28, 33, 0.94);
+  box-shadow: 0 0 0 5px var(--accent-soft), 0 12px 28px rgba(0,0,0,0.3);
+}
+@keyframes publicBubbleRoam {
+  0% { transform: translate(-50%, -50%) translate3d(-12px, 7px, 0); }
+  50% { transform: translate(-50%, -50%) translate3d(14px, -11px, 0); }
+  100% { transform: translate(-50%, -50%) translate3d(-5px, 14px, 0); }
+}
+.unlocked .public-bubbles { opacity: 0; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .logo-slot { width: 160px; height: 160px; }
+  .drag-logo { width: 160px; height: 160px; }
+  .login-card { max-width: 88vw; }
+  .public-bubble { width: 88px; height: 88px; padding: 12px; font-size: 10px; }
+}
+@media (max-width: 480px) {
+  .login-card { padding: var(--space-6) var(--space-5); }
+  .drag-logo { width: 130px; height: 130px; }
+  .public-bubble { width: 76px; height: 76px; }
+}

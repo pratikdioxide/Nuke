@@ -96,6 +96,12 @@ async function canEmbed(url) {
 }
 
 app.get("/api/auth/session", (req, res) => res.json({ authenticated: isAuthed(req), configured: Boolean(pool && adminPassword) }));
+app.get("/api/public-projects", async (req, res) => {
+  await dbReady;
+  if (!pool) return res.status(503).json({ error: "DATABASE_URL is not configured yet." });
+  const { rows } = await pool.query("SELECT name, slug FROM nuke_projects ORDER BY updated_at DESC");
+  res.json(rows);
+});
 app.post("/api/auth/login", (req, res) => {
   if (!ensureConfigured(res)) return;
   const submitted = Buffer.from(typeof req.body?.password === "string" ? req.body.password : "");
