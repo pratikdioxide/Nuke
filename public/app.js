@@ -16,27 +16,26 @@ function wanderBubble(bubble) {
   const motion = {
     x: (Math.random() - 0.5) * 38,
     y: (Math.random() - 0.5) * 38,
-    vx: (Math.random() - 0.5) * 0.055,
-    vy: (Math.random() - 0.5) * 0.055,
+    vx: (Math.random() < 0.5 ? -1 : 1) * (0.035 + Math.random() * 0.04),
+    vy: (Math.random() < 0.5 ? -1 : 1) * (0.035 + Math.random() * 0.04),
     rotation: (Math.random() - 0.5) * 8,
-    spin: (Math.random() - 0.5) * 0.012,
-    nextTurn: 0,
+    spin: 0,
     cooldownUntil: 0,
   };
   bubble.motion = motion;
 
   const move = (time) => {
     if (!bubble.isConnected) return;
-    if (time >= motion.nextTurn) {
-      motion.vx = Math.max(-0.11, Math.min(0.11, motion.vx + (Math.random() - 0.5) * 0.035));
-      motion.vy = Math.max(-0.11, Math.min(0.11, motion.vy + (Math.random() - 0.5) * 0.035));
-      motion.spin = (Math.random() - 0.5) * 0.025;
-      motion.nextTurn = time + 900 + Math.random() * 1800;
-    }
     motion.x += motion.vx * 16;
     motion.y += motion.vy * 16;
-    if (motion.x < -52 || motion.x > 52) motion.vx *= -1;
-    if (motion.y < -52 || motion.y > 52) motion.vy *= -1;
+    if (motion.x < -55 || motion.x > 55) {
+      motion.x = Math.max(-55, Math.min(55, motion.x));
+      motion.vx *= -1;
+    }
+    if (motion.y < -55 || motion.y > 55) {
+      motion.y = Math.max(-55, Math.min(55, motion.y));
+      motion.vy *= -1;
+    }
     motion.x = Math.max(-55, Math.min(55, motion.x));
     motion.y = Math.max(-55, Math.min(55, motion.y));
     motion.rotation += motion.spin * 16;
