@@ -12,59 +12,145 @@ function publicBubble(project, index) {
   return `<a class="public-bubble" href="/${encodeURIComponent(project.slug)}" style="left:${left}%;top:${top}%" title="Open ${esc(project.name)}">${esc(project.name)}</a>`;
 }
 
-function wanderBubble(bubble) {
-  const motion = {
-    x: (Math.random() - 0.5) * 38,
-    y: (Math.random() - 0.5) * 38,
-    vx: (Math.random() < 0.5 ? -1 : 1) * (0.035 + Math.random() * 0.04),
-    vy: (Math.random() < 0.5 ? -1 : 1) * (0.035 + Math.random() * 0.04),
-    rotation: (Math.random() - 0.5) * 8,
-    spin: 0,
+function resolveCircleRect(motion, radius, rect) {
+  const nearestX = Math.max(rect.left, Math.min(motion.x, rect.right));
+  const nearestY = Math.max(rect.top, Math.min(motion.y, rect.bottom));
+  let dx = motion.x - nearestX;
+  let dy = motion.y - nearestY;
+  let distance = Math.hypot(dx, dy);
+  if (distance >= radius) return;
+
+  if (!distance) {
+    const distances = [
+      { value: motion.x - rect.left, x: -1, y: 0 },
+      { value: rect.right - motion.x, x: 1, y: 0 },
+      { value: motion.y - rect.top, x: 0, y: -1 },
+      { value: rect.bottom - motion.y, x: 0, y: 1 },
+    ].sort((a, b) => a.value - b.value);
+    dx = distances[0].x;
+    dy = distances[0].y;
+    distance = 1;
+  }
+
+  const nx = dx / distance;
+  const ny = dy / distance;
+  motion.x += nx * (radius - distance + 1);
+  motion.y += ny * (radius - distance + 1);
+  const velocityAlongNormal = motion.vx * nx + motion.vy * ny;
+  if (velocityAlongNormal < 0) {
+    motion.vx -= 2 * velocityAlongNormal * nx;
+    motion.vy -= 2 * velocityAlongNormal * ny;
+  }
+}
+
+function resolveBubblePair(first, second) {
+  const dx = second.x - first.x;
+  const dy = second.y - first.y;
+  const minimumDistance = first.radius + second.radius;
+  const distance = Math.hypot(dx, dy);
+  if (distance >= minimumDistance) return;
+
+  const nx = distance ? dx / distance : 1;
+  const ny = distance ? dy / distance : 0;
+  const overlap = minimumDistance - (distance || 1);
+  first.x -= nx * overlap * 0.5;
+  first.y -= ny * overlap * 0.5;
+  second.x += nx * overlap * 0.5;
+  second.y += ny * overlap * 0.5;
+
+  const relativeVelocity = (second.vx - first.vx) * nx + (second.vy - first.vy) * ny;
+  if (relativeVelocity < 0) {
+    first.vx += relativeVelocity * nx;
+    first.vy += relativeVelocity * ny;
+    second.vx -= relativeVelocity * nx;
+    second.vy -= relativeVelocity * ny;
+  }
+}
+
+function wanderBubble(bubble, index, container) {
+  const radius = bubble.offsetWidth / 2;
+  const stageRect = container.getBoundingClientRect();
+  const obstacles = [];
+  const logo = document.querySelector("#drag-logo");
+  if (logo) obstacles.push(logo.getBoundingClientRect());
+  let x = stageRect.width * (0.1 + Math.random() * 0.8);
+  let y = stageRect.height * (0.1 + Math.random() * 0.8);
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const overlaps = obstacles.some((rect) => {
+      const localRect = { left: rect.left - stageRect.left - 22, right: rect.right - stageRect.left + 22, top: rect.top - stageRect.top - 22, bottom: rect.bottom - stageRect.top + 22 };
+      return x > localRect.left - radius && x < localRect.right + radius && y > localRect.top - radius && y < localRect.bottom + radius;
+    });
+    if (!overlaps) break;
+    x = radius + Math.random() * Math.max(1, stageRect.width - radius * 2);
+    y = radius + Math.random() * Math.max(1, stageRect.height - radius * 2);
+  }
+
+  bubble.motion = {
+    x,
+    y,
+    radius,
+    vx: (Math.random() < 0.5 ? -1 : 1) * (0.07 + Math.random() * 0.1),
+    vy: (Math.random() < 0.5 ? -1 : 1) * (0.07 + Math.random() * 0.1),
+    rotation: index * 7,
+    spin: (Math.random() - 0.5) * 0.03,
     cooldownUntil: 0,
   };
-  bubble.motion = motion;
+}
+
+function startBubblePhysics(container) {
+  let previousTime = performance.now();
+  const motion = {
+    bubbles: [],
+  };
+  motion.bubbles = [...container.querySelectorAll(".public-bubble")];
 
   const move = (time) => {
-    if (!bubble.isConnected) return;
-    motion.x += motion.vx * 16;
-    motion.y += motion.vy * 16;
-    if (motion.x < -55 || motion.x > 55) {
-      motion.x = Math.max(-55, Math.min(55, motion.x));
-      motion.vx *= -1;
+    if (!container.isConnected) return;
+    const delta = Math.min(34, Math.max(8, time - previousTime));
+    previousTime = time;
+    const stageRect = container.getBoundingClientRect();
+    const stageWidth = stageRect.width;
+    const stageHeight = stageRect.height;
+    const activeBubbles = motion.bubbles.filter((bubble) => bubble.isConnected && bubble.motion);
+    const stage = document.querySelector("#drag-stage");
+
+    activeBubbles.forEach((bubble) => {
+      const item = bubble.motion;
+      item.x += item.vx * delta;
+      item.y += item.vy * delta;
+      if (item.x <= item.radius || item.x >= stageWidth - item.radius) {
+        item.x = Math.max(item.radius, Math.min(stageWidth - item.radius, item.x));
+        item.vx *= -1;
+      }
+      if (item.y <= item.radius || item.y >= stageHeight - item.radius) {
+        item.y = Math.max(item.radius, Math.min(stageHeight - item.radius, item.y));
+        item.vy *= -1;
+      }
+
+      if (stage && !stage.classList.contains("unlocked")) {
+        const liveLogo = document.querySelector("#drag-logo")?.getBoundingClientRect();
+        if (liveLogo) resolveCircleRect(item, item.radius, { left: liveLogo.left - stageRect.left, right: liveLogo.right - stageRect.left, top: liveLogo.top - stageRect.top, bottom: liveLogo.bottom - stageRect.top });
+      }
+      const card = document.querySelector("#login-card.visible")?.getBoundingClientRect();
+      if (card) resolveCircleRect(item, item.radius, { left: card.left - stageRect.left, right: card.right - stageRect.left, top: card.top - stageRect.top, bottom: card.bottom - stageRect.top });
+      item.rotation += item.spin * delta;
+    });
+
+    for (let first = 0; first < activeBubbles.length; first += 1) {
+      for (let second = first + 1; second < activeBubbles.length; second += 1) {
+        resolveBubblePair(activeBubbles[first].motion, activeBubbles[second].motion);
+      }
     }
-    if (motion.y < -55 || motion.y > 55) {
-      motion.y = Math.max(-55, Math.min(55, motion.y));
-      motion.vy *= -1;
-    }
-    motion.x = Math.max(-55, Math.min(55, motion.x));
-    motion.y = Math.max(-55, Math.min(55, motion.y));
-    motion.rotation += motion.spin * 16;
-    bubble.style.transform = `translate(-50%, -50%) translate3d(${motion.x}px, ${motion.y}px, 0) rotate(${motion.rotation}deg)`;
+
+    activeBubbles.forEach((bubble) => {
+      const item = bubble.motion;
+      bubble.style.left = `${item.x}px`;
+      bubble.style.top = `${item.y}px`;
+      bubble.style.transform = `translate(-50%, -50%) rotate(${item.rotation}deg)`;
+    });
     requestAnimationFrame(move);
   };
   requestAnimationFrame(move);
-}
-
-function kickBubbles(logo) {
-  const logoRect = logo.getBoundingClientRect();
-  const logoX = logoRect.left + logoRect.width / 2;
-  const logoY = logoRect.top + logoRect.height / 2;
-  document.querySelectorAll("#public-bubbles .public-bubble").forEach((bubble) => {
-    const motion = bubble.motion;
-    if (!motion || motion.cooldownUntil > performance.now()) return;
-    const rect = bubble.getBoundingClientRect();
-    const bubbleX = rect.left + rect.width / 2;
-    const bubbleY = rect.top + rect.height / 2;
-    const distance = Math.hypot(bubbleX - logoX, bubbleY - logoY);
-    if (distance > logoRect.width * 0.58 + rect.width * 0.5) return;
-    const angle = Math.atan2(bubbleY - logoY, bubbleX - logoX);
-    motion.vx += Math.cos(angle) * 0.24;
-    motion.vy += Math.sin(angle) * 0.24;
-    motion.x += Math.cos(angle) * 30;
-    motion.y += Math.sin(angle) * 30;
-    motion.spin += (Math.random() - 0.5) * 0.18;
-    motion.cooldownUntil = performance.now() + 260;
-  });
 }
 
 async function loadPublicBubbles() {
@@ -73,7 +159,8 @@ async function loadPublicBubbles() {
     const bubbles = document.querySelector("#public-bubbles");
     if (bubbles) {
       bubbles.innerHTML = projects.map(publicBubble).join("");
-      bubbles.querySelectorAll(".public-bubble").forEach(wanderBubble);
+      bubbles.querySelectorAll(".public-bubble").forEach((bubble, index) => wanderBubble(bubble, index, bubbles));
+      startBubblePhysics(bubbles);
     }
   } catch {
     // The private login should remain usable if the optional public list is unavailable.
@@ -129,7 +216,6 @@ function login(message = "") {
     const targetX = clamp(originX + (e.clientX - startX), stageRect.left + margin, stageRect.right - margin);
     const targetY = clamp(originY + (e.clientY - startY), stageRect.top + margin, stageRect.bottom - margin);
     dragLogo.style.transform = `translate(${targetX - originX}px, ${targetY - originY}px)`;
-    kickBubbles(dragLogo);
   }
   function pointerUp() {
     if (!dragging) return;
