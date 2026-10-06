@@ -47,9 +47,8 @@ async function initDb() {
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
-      kind TEXT NOT NULL CHECK (kind IN ('html', 'external')),
-      content TEXT,
-      external_url TEXT,
+      kind TEXT NOT NULL CHECK (kind = 'html'),
+      content TEXT NOT NULL,
       public_env JSONB NOT NULL DEFAULT '{}'::jsonb,
       project_files JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -57,55 +56,16 @@ async function initDb() {
     )
   `);
   await pool.query("ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS public_env JSONB NOT NULL DEFAULT '{}'::jsonb");
-  await pool.query("ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS project_files JSONB NOT NULL DEFAULT '[]'::jsonb");
 }
 const dbReady = initDb().catch((error) => {
   console.error("Database initialization failed:", error.message);
 });
 
-const embedCache = new Map(); // url -> { ok: boolean, expires: number }
-const EMBED_CACHE_TTL = 60 * 60 * 1000; // 1 hour
-
-async function canEmbed(url) {
-  const cached = embedCache.get(url);
-  if (cached && cached.expires > Date.now()) return cached.ok;
-
-  let ok = true; // if we can't determine, prefer attempting the iframe
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-    let resp;
-    try {
-      resp = await fetch(url, { method: "HEAD", redirect: "follow", signal: controller.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; NukeFrameCheck/1.0)" } });
-    } catch {
-      resp = await fetch(url, { method: "GET", redirect: "follow", signal: controller.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; NukeFrameCheck/1.0)" } });
-      resp.body?.cancel?.().catch(() => {});
-    }
-    clearTimeout(timeout);
-
-    const xfo = (resp.headers.get("x-frame-options") || "").toLowerCase();
-    if (xfo.includes("deny") || xfo.includes("sameorigin")) ok = false;
-
-    const csp = resp.headers.get("content-security-policy") || "";
-    const match = csp.match(/frame-ancestors\s+([^;]+)/i);
-    if (match) {
-      const sources = match[1].trim().toLowerCase();
-      if (sources.includes("'none'")) ok = false;
-      else if (!sources.includes("*") && !sources.includes("'self'")) ok = false;
-    }
-  } catch {
-    ok = true; // network hiccup — don't punish the site, just try to embed it
-  }
-
-  embedCache.set(url, { ok, expires: Date.now() + EMBED_CACHE_TTL });
-  return ok;
-}
-
 app.get("/api/auth/session", (req, res) => res.json({ authenticated: isAuthed(req), configured: Boolean(pool && adminPassword) }));
 app.get("/api/public-projects", async (req, res) => {
   await dbReady;
   if (!pool) return res.status(503).json({ error: "DATABASE_URL is not configured yet." });
-  const { rows } = await pool.query("SELECT name, slug FROM nuke_projects ORDER BY updated_at DESC");
+  const { rows } = await pool.query("SELECT name, slug FROM nuke_projects WHERE kind='html' ORDER BY updated_at DESC");
   res.json(rows);
 });
 app.post("/api/auth/login", (req, res) => {
@@ -126,73 +86,83 @@ app.post("/api/auth/logout", (req, res) => {
 app.get("/api/projects", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  const { rows } = await pool.query("SELECT id, name, slug, kind, content, external_url, public_env, created_at, updated_at FROM nuke_projects ORDER BY updated_at DESC");
+  const { rows } = await pool.query("SELECT id, name, slug, kind, content, public_env, created_at, updated_at FROM nuke_projects WHERE kind='html' ORDER BY updated_at DESC");
   res.json(rows);
 });
 app.get("/api/projects/:id", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE id=$1", [req.params.id]);
+  const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE id=$1 AND kind='html'", [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: "Project not found." });
   res.json(rows[0]);
 });
 app.post("/api/projects", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  const { name, slug, kind, content, externalUrl } = req.body || {};
-  if (!name?.trim() || !slug?.trim() || !["html", "external"].includes(kind)) return res.status(400).json({ error: "Name, slug, and a valid project type are required." });
-  if (kind === "html" && !content?.trim()) return res.status(400).json({ error: "HTML content is required." });
-  if (kind === "external" && !/^https?:\/\//i.test(externalUrl || "")) return res.status(400).json({ error: "Use a complete http:// or https:// URL." });
+  const { name, slug, content } = req.body || {};
+  if (typeof name !== "string" || !name.trim() || typeof slug !== "string" || !slug.trim()) {
+    return res.status(400).json({ error: "Project name and URL slug are required." });
+  }
+  if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Add a root index.html page before publishing." });
   let publicEnv;
   let projectFiles;
   try {
-    publicEnv = kind === "html" ? normalizePublicEnv(req.body?.publicEnv) : {};
-    projectFiles = kind === "html" ? normalizeProjectFiles(req.body?.projectFiles, content) : [];
+    publicEnv = normalizePublicEnv(req.body?.publicEnv);
+    projectFiles = normalizeProjectFiles(req.body?.projectFiles, content);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
   try {
     const { rows } = await pool.query(
-      "INSERT INTO nuke_projects (name, slug, kind, content, external_url, public_env, project_files) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb) RETURNING id, name, slug, kind, content, external_url, public_env, created_at, updated_at",
-      [name.trim(), slug.trim().toLowerCase(), kind, kind === "html" ? content : null, kind === "external" ? externalUrl.trim() : null, JSON.stringify(publicEnv), JSON.stringify(projectFiles)],
+      "INSERT INTO nuke_projects (name, slug, kind, content, public_env, project_files) VALUES ($1,$2,'html',$3,$4::jsonb,$5::jsonb) RETURNING id, name, slug, kind, content, public_env, created_at, updated_at",
+      [name.trim(), slug.trim().toLowerCase(), content, JSON.stringify(publicEnv), JSON.stringify(projectFiles)],
     );
     res.status(201).json(rows[0]);
   } catch (error) {
     if (error.code === "23505") return res.status(409).json({ error: "That slug is already in use." });
-    res.status(500).json({ error: "Could not save the project." });
+    console.error("Project create failed:", error.message);
+    if (error.code === "42703" && error.message.includes("project_files")) {
+      return res.status(500).json({ error: "The Neon database is missing the project_files column. Apply the SQL migration provided with this update, then retry." });
+    }
+    res.status(500).json({ error: "Could not save the project. Check the server log for details." });
   }
 });
 app.put("/api/projects/:id", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  const { name, slug, content, externalUrl } = req.body || {};
-  if (!name?.trim() || !slug?.trim()) return res.status(400).json({ error: "Name and slug are required." });
+  const { name, slug, content } = req.body || {};
+  if (typeof name !== "string" || !name.trim() || typeof slug !== "string" || !slug.trim()) {
+    return res.status(400).json({ error: "Project name and URL slug are required." });
+  }
+  if (typeof content !== "string" || !content.trim()) return res.status(400).json({ error: "Add a root index.html page before publishing." });
   let publicEnv;
-  let projectFiles = null;
+  let projectFiles;
   try {
     publicEnv = normalizePublicEnv(req.body?.publicEnv);
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, "projectFiles")) {
-      projectFiles = normalizeProjectFiles(req.body?.projectFiles, content || "");
-    }
+    projectFiles = normalizeProjectFiles(req.body?.projectFiles, content);
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
   try {
     const { rows } = await pool.query(
-      "UPDATE nuke_projects SET name=$1, slug=$2, content=CASE WHEN kind='html' THEN $3 ELSE content END, external_url=CASE WHEN kind='external' THEN $4 ELSE external_url END, public_env=CASE WHEN kind='html' THEN $5::jsonb ELSE public_env END, project_files=CASE WHEN kind='html' AND $6::jsonb IS NOT NULL THEN $6::jsonb ELSE project_files END, updated_at=NOW() WHERE id=$7 RETURNING id, name, slug, kind, content, external_url, public_env, created_at, updated_at",
-      [name.trim(), slug.trim().toLowerCase(), content || null, externalUrl?.trim() || null, JSON.stringify(publicEnv), projectFiles === null ? null : JSON.stringify(projectFiles), req.params.id],
+      "UPDATE nuke_projects SET name=$1, slug=$2, content=$3, public_env=$4::jsonb, project_files=$5::jsonb, updated_at=NOW() WHERE id=$6 AND kind='html' RETURNING id, name, slug, kind, content, public_env, created_at, updated_at",
+      [name.trim(), slug.trim().toLowerCase(), content, JSON.stringify(publicEnv), JSON.stringify(projectFiles), req.params.id],
     );
     if (!rows[0]) return res.status(404).json({ error: "Project not found." });
     res.json(rows[0]);
   } catch (error) {
     if (error.code === "23505") return res.status(409).json({ error: "That slug is already in use." });
-    res.status(500).json({ error: "Could not update the project." });
+    console.error("Project update failed:", error.message);
+    if (error.code === "42703" && error.message.includes("project_files")) {
+      return res.status(500).json({ error: "The Neon database is missing the project_files column. Apply the SQL migration provided with this update, then retry." });
+    }
+    res.status(500).json({ error: "Could not update the project. Check the server log for details." });
   }
 });
 app.delete("/api/projects/:id", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  await pool.query("DELETE FROM nuke_projects WHERE id=$1", [req.params.id]);
+  await pool.query("DELETE FROM nuke_projects WHERE id=$1 AND kind='html'", [req.params.id]);
   res.status(204).end();
 });
 
@@ -202,15 +172,24 @@ app.get(/^\/([^/]+)\/(.+)$/, async (req, res, next) => {
   const slug = req.params[0];
   const filePath = normalizeRequestedProjectPath(req.params[1]);
   if (!filePath) return res.status(404).send("File not found.");
-  const { rows } = await pool.query(
-    `SELECT content, public_env, kind,
-       (SELECT file.value
-        FROM jsonb_array_elements(COALESCE(project_files, '[]'::jsonb)) AS file(value)
-        WHERE file.value->>'path'=$2
-        LIMIT 1) AS project_file
-     FROM nuke_projects WHERE slug=$1`,
-    [slug, filePath],
-  );
+  let rows;
+  try {
+    ({ rows } = await pool.query(
+      `SELECT content, public_env, kind,
+         (SELECT file.value
+          FROM jsonb_array_elements(COALESCE(project_files, '[]'::jsonb)) AS file(value)
+          WHERE file.value->>'path'=$2
+          LIMIT 1) AS project_file
+       FROM nuke_projects WHERE slug=$1`,
+      [slug, filePath],
+    ));
+  } catch (error) {
+    console.error("Hosted file lookup failed:", error.message);
+    if (error.code === "42703" && error.message.includes("project_files")) {
+      return res.status(503).send("The Neon database is missing the project_files column. Apply the SQL migration provided with this update.");
+    }
+    return res.status(500).send("Could not load this hosted file. Check the server logs.");
+  }
   const project = rows[0];
   if (!project || project.kind !== "html") return next();
 
@@ -232,23 +211,12 @@ app.get("/:slug", async (req, res, next) => {
   if (req.params.slug.includes(".")) return next();
   if (!pool) return res.status(503).send("DATABASE_URL is not configured yet.");
   await dbReady;
-  const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE slug=$1", [req.params.slug]);
+  const { rows } = await pool.query("SELECT slug, content, public_env FROM nuke_projects WHERE slug=$1 AND kind='html'", [req.params.slug]);
   const project = rows[0];
   if (!project) return next();
-  if (project.kind === "html") {
-    if (!req.path.endsWith("/")) return res.redirect(308, `/${encodeURIComponent(project.slug)}/`);
-    res.setHeader("Cache-Control", "no-store");
-    return res.type("html").send(injectPublicEnv(project.content || "", project.public_env || {}));
-  }
-  const safeUrl = project.external_url;
-  const safeName = project.name.replaceAll("<", "&lt;");
-  const embeddable = await canEmbed(safeUrl);
-
-  if (embeddable) {
-    return res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeName} · Nuke</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#0B0B0D}body{overflow:hidden}.fallback{position:fixed;bottom:18px;left:18px;padding:10px 16px;border-radius:999px;background:#F5A9C8;color:#1A0F16;font:600 13px system-ui;text-decoration:none;box-shadow:0 8px 20px rgba(0,0,0,.4);z-index:10}</style></head><body><iframe src="${safeUrl}" title="${project.name.replaceAll('"', "&quot;")}"></iframe><a class="fallback" href="${safeUrl}" target="_blank" rel="noreferrer">Open externally ↗</a></body></html>`);
-  }
-
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=${safeUrl}"><title>${safeName} · Nuke</title><style>html,body{margin:0;height:100%;background:#0B0B0D;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;color:#F5F5F5}.wrap{text-align:center}img{width:44px;height:44px;opacity:.5;animation:spin 2s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}p{color:#9A9A9E;font-size:13px;margin:14px 0 6px}a{color:#F5A9C8;font-size:13px;text-decoration:none;font-weight:600}</style></head><body><div class="wrap"><img src="/nuke-logo.svg" alt=""><p>Opening ${safeName}…</p><a href="${safeUrl}">Continue if you're not redirected →</a></div><script>location.replace(${JSON.stringify(safeUrl)});</script></body></html>`);
+  if (!req.path.endsWith("/")) return res.redirect(308, `/${encodeURIComponent(project.slug)}/`);
+  res.setHeader("Cache-Control", "no-store");
+  return res.type("html").send(injectPublicEnv(project.content || "", project.public_env || {}));
 });
 
 export { app };
