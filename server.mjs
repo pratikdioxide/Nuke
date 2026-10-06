@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { injectPublicEnv, normalizePublicEnv } from "./public-env.mjs";
+import { contentTypeForProjectPath, normalizeProjectFiles, normalizeRequestedProjectPath } from "./project-files.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -13,7 +15,7 @@ const pool = process.env.DATABASE_URL
   ? new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
   : null;
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "32mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 function tokenFor(value) {
@@ -48,10 +50,14 @@ async function initDb() {
       kind TEXT NOT NULL CHECK (kind IN ('html', 'external')),
       content TEXT,
       external_url TEXT,
+      public_env JSONB NOT NULL DEFAULT '{}'::jsonb,
+      project_files JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query("ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS public_env JSONB NOT NULL DEFAULT '{}'::jsonb");
+  await pool.query("ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS project_files JSONB NOT NULL DEFAULT '[]'::jsonb");
 }
 const dbReady = initDb().catch((error) => {
   console.error("Database initialization failed:", error.message);
@@ -120,8 +126,15 @@ app.post("/api/auth/logout", (req, res) => {
 app.get("/api/projects", requireAuth, async (req, res) => {
   await dbReady;
   if (!ensureConfigured(res)) return;
-  const { rows } = await pool.query("SELECT id, name, slug, kind, content, external_url, created_at, updated_at FROM nuke_projects ORDER BY updated_at DESC");
+  const { rows } = await pool.query("SELECT id, name, slug, kind, content, external_url, public_env, created_at, updated_at FROM nuke_projects ORDER BY updated_at DESC");
   res.json(rows);
+});
+app.get("/api/projects/:id", requireAuth, async (req, res) => {
+  await dbReady;
+  if (!ensureConfigured(res)) return;
+  const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE id=$1", [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: "Project not found." });
+  res.json(rows[0]);
 });
 app.post("/api/projects", requireAuth, async (req, res) => {
   await dbReady;
@@ -130,10 +143,18 @@ app.post("/api/projects", requireAuth, async (req, res) => {
   if (!name?.trim() || !slug?.trim() || !["html", "external"].includes(kind)) return res.status(400).json({ error: "Name, slug, and a valid project type are required." });
   if (kind === "html" && !content?.trim()) return res.status(400).json({ error: "HTML content is required." });
   if (kind === "external" && !/^https?:\/\//i.test(externalUrl || "")) return res.status(400).json({ error: "Use a complete http:// or https:// URL." });
+  let publicEnv;
+  let projectFiles;
+  try {
+    publicEnv = kind === "html" ? normalizePublicEnv(req.body?.publicEnv) : {};
+    projectFiles = kind === "html" ? normalizeProjectFiles(req.body?.projectFiles, content) : [];
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
   try {
     const { rows } = await pool.query(
-      "INSERT INTO nuke_projects (name, slug, kind, content, external_url) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-      [name.trim(), slug.trim().toLowerCase(), kind, kind === "html" ? content : null, kind === "external" ? externalUrl.trim() : null],
+      "INSERT INTO nuke_projects (name, slug, kind, content, external_url, public_env, project_files) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb) RETURNING id, name, slug, kind, content, external_url, public_env, created_at, updated_at",
+      [name.trim(), slug.trim().toLowerCase(), kind, kind === "html" ? content : null, kind === "external" ? externalUrl.trim() : null, JSON.stringify(publicEnv), JSON.stringify(projectFiles)],
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -146,10 +167,20 @@ app.put("/api/projects/:id", requireAuth, async (req, res) => {
   if (!ensureConfigured(res)) return;
   const { name, slug, content, externalUrl } = req.body || {};
   if (!name?.trim() || !slug?.trim()) return res.status(400).json({ error: "Name and slug are required." });
+  let publicEnv;
+  let projectFiles = null;
+  try {
+    publicEnv = normalizePublicEnv(req.body?.publicEnv);
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "projectFiles")) {
+      projectFiles = normalizeProjectFiles(req.body?.projectFiles, content || "");
+    }
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
   try {
     const { rows } = await pool.query(
-      "UPDATE nuke_projects SET name=$1, slug=$2, content=CASE WHEN kind='html' THEN $3 ELSE content END, external_url=CASE WHEN kind='external' THEN $4 ELSE external_url END, updated_at=NOW() WHERE id=$5 RETURNING *",
-      [name.trim(), slug.trim().toLowerCase(), content || null, externalUrl?.trim() || null, req.params.id],
+      "UPDATE nuke_projects SET name=$1, slug=$2, content=CASE WHEN kind='html' THEN $3 ELSE content END, external_url=CASE WHEN kind='external' THEN $4 ELSE external_url END, public_env=CASE WHEN kind='html' THEN $5::jsonb ELSE public_env END, project_files=CASE WHEN kind='html' AND $6::jsonb IS NOT NULL THEN $6::jsonb ELSE project_files END, updated_at=NOW() WHERE id=$7 RETURNING id, name, slug, kind, content, external_url, public_env, created_at, updated_at",
+      [name.trim(), slug.trim().toLowerCase(), content || null, externalUrl?.trim() || null, JSON.stringify(publicEnv), projectFiles === null ? null : JSON.stringify(projectFiles), req.params.id],
     );
     if (!rows[0]) return res.status(404).json({ error: "Project not found." });
     res.json(rows[0]);
@@ -165,6 +196,38 @@ app.delete("/api/projects/:id", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
+app.get(/^\/([^/]+)\/(.+)$/, async (req, res, next) => {
+  if (!pool) return res.status(503).send("DATABASE_URL is not configured yet.");
+  await dbReady;
+  const slug = req.params[0];
+  const filePath = normalizeRequestedProjectPath(req.params[1]);
+  if (!filePath) return res.status(404).send("File not found.");
+  const { rows } = await pool.query(
+    `SELECT content, public_env, kind,
+       (SELECT file.value
+        FROM jsonb_array_elements(COALESCE(project_files, '[]'::jsonb)) AS file(value)
+        WHERE file.value->>'path'=$2
+        LIMIT 1) AS project_file
+     FROM nuke_projects WHERE slug=$1`,
+    [slug, filePath],
+  );
+  const project = rows[0];
+  if (!project || project.kind !== "html") return next();
+
+  const normalizedPath = filePath.toLowerCase();
+  const file = normalizedPath === "index.html"
+    ? { path: "index.html", contentType: "text/html; charset=utf-8", encoding: "utf8", content: project.content || "" }
+    : project.project_file;
+  if (!file) return next();
+  const contentType = file.contentType || contentTypeForProjectPath(file.path);
+  res.setHeader("Content-Type", contentType);
+  res.setHeader("Cache-Control", "no-store");
+  if (contentType.startsWith("text/html") && file.encoding !== "base64") {
+    return res.send(injectPublicEnv(file.content || "", project.public_env || {}));
+  }
+  return res.send(file.encoding === "base64" ? Buffer.from(file.content, "base64") : file.content);
+});
+
 app.get("/:slug", async (req, res, next) => {
   if (req.params.slug.includes(".")) return next();
   if (!pool) return res.status(503).send("DATABASE_URL is not configured yet.");
@@ -172,7 +235,11 @@ app.get("/:slug", async (req, res, next) => {
   const { rows } = await pool.query("SELECT * FROM nuke_projects WHERE slug=$1", [req.params.slug]);
   const project = rows[0];
   if (!project) return next();
-  if (project.kind === "html") return res.type("html").send(project.content);
+  if (project.kind === "html") {
+    if (!req.path.endsWith("/")) return res.redirect(308, `/${encodeURIComponent(project.slug)}/`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.type("html").send(injectPublicEnv(project.content || "", project.public_env || {}));
+  }
   const safeUrl = project.external_url;
   const safeName = project.name.replaceAll("<", "&lt;");
   const embeddable = await canEmbed(safeUrl);
