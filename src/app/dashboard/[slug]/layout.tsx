@@ -10,18 +10,27 @@ export default async function ProjectLayout({ children, params }: { children: Re
   const { slug } = await params;
   const [project, origin] = await Promise.all([getProject(slug), getOrigin()]);
   if (!project) notFound();
+  const siteUrl = `/${project.slug}/`;
   return (
-    <>
-      <div className="page-head" style={{ marginBottom: 12 }}>
-        <div>
-          <div className="hint"><Link href="/dashboard">Projects</Link> / {project.slug}</div>
+    <div className="project-workspace">
+      <aside className="project-sidebar" aria-label={`${project.name} project navigation`}>
+        <Link href="/dashboard" className="project-home">
+          <span className="project-home-mark" aria-hidden="true">←</span>
+          <span>All projects</span>
+        </Link>
+        <div className="project-identity">
+          <div className="hint">Project</div>
           <h1>{project.name}</h1>
-          <a className="url mono" href={`/${project.slug}/`} target="_blank" rel="noopener">{origin.replace(/^https?:\/\//, "")}/{project.slug} ↗</a>
+          <a className="url mono" href={siteUrl} target="_blank" rel="noopener noreferrer">{origin.replace(/^https?:\/\//, "")}/{project.slug}</a>
         </div>
-        {project.active_deployment_id && <a className="btn btn-primary" href={`/${project.slug}/`} target="_blank" rel="noopener">Visit ↗</a>}
-      </div>
-      <Tabs slug={project.slug} />
-      {children}
-    </>
+        <Tabs slug={project.slug} />
+        {project.active_deployment_id && (
+          <a className="btn btn-primary project-visit" href={siteUrl} target="_blank" rel="noopener noreferrer">
+            Visit site <span aria-hidden="true">↗</span>
+          </a>
+        )}
+      </aside>
+      <section className="project-content" aria-label="Project workspace">{children}</section>
+    </div>
   );
 }

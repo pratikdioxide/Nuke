@@ -19,6 +19,14 @@ export default function Docs() {
   const api = window.NUKE_ENV.API_URL;
 </script>`}</pre>
       <p>Static sites run in the browser, so values are visible to visitors. Do not store secrets here.</p>
+      <h2>Private secrets and API proxies</h2>
+      <p>Open the project’s <b>Secrets &amp; API</b> tab to save a private, one-line API credential. Secret values are encrypted at rest and are never included in your deployed pages or returned after saving. The <code>NUKE_SECRETS_ENCRYPTION_KEY</code> server setting must remain stable; changing it makes saved credentials unreadable.</p>
+      <p>Create a proxy with an HTTPS upstream, a narrow path prefix such as <code>/v1</code>, permitted methods, and the secret header. Your browser calls the Nuke endpoint; Nuke attaches the secret on the server:</p>
+      <pre>{`fetch("/api/proxy/your-project/PROXY_ID/items", {
+  method: "GET",
+  headers: { "Accept": "application/json" }
+}).then(response => response.json());`}</pre>
+      <p>Proxy endpoints are public and rate limited, not user-authenticated. Only expose low-risk operations. Nuke restricts each proxy to its configured host, path prefix, and methods; it rejects redirects and caps request and response sizes.</p>
       <h2>GitHub and deploy hooks</h2>
       <p>Choose <b>GitHub</b> when deploying, e.g. <code>owner/repo</code>. Private repos need <code>GITHUB_TOKEN</code>. In <b>Settings</b>, copy the deploy hook URL and add it as a GitHub webhook to redeploy on every push.</p>
       <h2>Editing files</h2>

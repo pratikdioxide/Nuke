@@ -29,7 +29,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server.mjs"
+args = "npm run dev -- --hostname 0.0.0.0 --port 3000"
 waitForPort = 3000
 
 [agent]

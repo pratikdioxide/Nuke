@@ -1,10 +1,16 @@
 import type { LogLine } from "@/lib/shared";
+import Image from "next/image";
 
 export function Logo({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <path d="M16 3l2.9 7.2L26 7.5l-3.8 6.8L29 16l-6.8 1.7L26 24.5l-7.1-2.7L16 29l-2.9-7.2L6 24.5l3.8-6.8L3 16l6.8-1.7L6 7.5l7.1 2.7z" fill="#fff" />
-    </svg>
+    <Image
+      src="/favicon.svg"
+      alt=""
+      width={600}
+      height={598}
+      aria-hidden="true"
+      style={{ width: size, height: "auto", flex: "none" }}
+    />
   );
 }
 

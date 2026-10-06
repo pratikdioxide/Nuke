@@ -78,6 +78,40 @@ CREATE TABLE IF NOT EXISTS nuke_files (
   PRIMARY KEY (deployment_id, path)
 );
 CREATE INDEX IF NOT EXISTS nuke_files_hash_idx ON nuke_files(hash);
+
+CREATE TABLE IF NOT EXISTS nuke_project_secrets (
+  project_id INT NOT NULL REFERENCES nuke_projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  encrypted_value TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (project_id, name)
+);
+CREATE TABLE IF NOT EXISTS nuke_api_proxies (
+  id TEXT PRIMARY KEY,
+  project_id INT NOT NULL REFERENCES nuke_projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  path_prefix TEXT NOT NULL,
+  allowed_methods TEXT[] NOT NULL,
+  secret_name TEXT NOT NULL,
+  secret_header TEXT NOT NULL,
+  secret_prefix TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (project_id, name),
+  FOREIGN KEY (project_id, secret_name)
+    REFERENCES nuke_project_secrets(project_id, name) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS nuke_proxy_usage (
+  project_id INT NOT NULL REFERENCES nuke_projects(id) ON DELETE CASCADE,
+  proxy_id TEXT NOT NULL REFERENCES nuke_api_proxies(id) ON DELETE CASCADE,
+  client_key TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL,
+  hits INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (project_id, proxy_id, client_key, window_start)
+);
+CREATE INDEX IF NOT EXISTS nuke_proxy_usage_window_idx ON nuke_proxy_usage(window_start);
 `;
 
 /** Old single-table projects (content + project_files) become deployment #1. */
