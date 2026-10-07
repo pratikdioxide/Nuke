@@ -14,7 +14,7 @@ export default async function Dashboard() {
         <div><h1>Projects</h1><p className="sub">{projects.length} site{projects.length === 1 ? "" : "s"} hosted</p></div>
         <Link href="/dashboard/new" className="btn btn-primary">+ New project</Link>
       </div>
-      <ProjectGrid projects={JSON.parse(JSON.stringify(projects))} host={origin.replace(/^https?:\/\//, "")} />
+      <ProjectGrid projects={projects} host={origin.replace(/^https?:\/\//, "")} />
     </>
   );
 }

@@ -18,6 +18,7 @@ function pool(): pg.Pool {
     globalThis.__nukePool = new pg.Pool({
       connectionString: url,
       max: Number(process.env.PG_POOL_MAX) || 4,
+      connectionTimeoutMillis: 8000,
       ssl: local ? false : { rejectUnauthorized: false },
     });
   }
