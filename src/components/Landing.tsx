@@ -5,8 +5,47 @@ import { Logo } from "@/components/ui";
 
 type LandingProject = { name: string; slug: string };
 type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
+type Obstacle = { left: number; top: number; right: number; bottom: number; vx: number; vy: number };
 
-/** Project bubbles move freely and bounce off one another and the viewport edges. */
+function resolveCircleRect(bubble: Bubble, obstacle: Obstacle) {
+  const nearestX = Math.max(obstacle.left, Math.min(bubble.x, obstacle.right));
+  const nearestY = Math.max(obstacle.top, Math.min(bubble.y, obstacle.bottom));
+  const dx = bubble.x - nearestX;
+  const dy = bubble.y - nearestY;
+  const distance = Math.hypot(dx, dy);
+  if (distance >= bubble.r) return;
+
+  let nx: number;
+  let ny: number;
+  let overlap: number;
+  if (distance > 0.001) {
+    nx = dx / distance;
+    ny = dy / distance;
+    overlap = bubble.r - distance;
+  } else {
+    const exits = [
+      { distance: bubble.x - obstacle.left, x: -1, y: 0 },
+      { distance: obstacle.right - bubble.x, x: 1, y: 0 },
+      { distance: bubble.y - obstacle.top, x: 0, y: -1 },
+      { distance: obstacle.bottom - bubble.y, x: 0, y: 1 },
+    ].sort((a, b) => a.distance - b.distance);
+    nx = exits[0].x;
+    ny = exits[0].y;
+    overlap = exits[0].distance + bubble.r;
+  }
+
+  bubble.x += nx * (overlap + 0.5);
+  bubble.y += ny * (overlap + 0.5);
+
+  const relativeNormalSpeed = (bubble.vx - obstacle.vx) * nx + (bubble.vy - obstacle.vy) * ny;
+  if (relativeNormalSpeed < 0) {
+    const impulse = (1 + 0.88) * relativeNormalSpeed;
+    bubble.vx -= impulse * nx;
+    bubble.vy -= impulse * ny;
+  }
+}
+
+/** Project bubbles bounce off one another, viewport edges, the logo, and the sign-in panel. */
 function Bubbles({ projects }: { projects: LandingProject[] | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
@@ -18,6 +57,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let w = 0, h = 0, raf = 0, previous = 0;
     let bubbles: Bubble[] = [];
+    let previousObstacleCenters = new Map<string, { x: number; y: number }>();
 
     const resolveCollision = (a: Bubble, b: Bubble) => {
       let dx = b.x - a.x;
@@ -137,6 +177,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       cv.width = Math.round(w * dpr);
       cv.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      previousObstacleCenters.clear();
 
       const count = projects?.length ?? 0;
       const idealRadius = Math.sqrt((w * h * 0.08) / (Math.max(1, count) * Math.PI));
@@ -163,13 +204,45 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       raf = requestAnimationFrame(tick);
       if (document.hidden) {
         previous = now;
+        previousObstacleCenters.clear();
         return;
       }
       const elapsed = previous ? Math.min((now - previous) / 1000, 0.04) : 0;
       previous = now;
+      const canvasRect = cv.getBoundingClientRect();
+      const obstacleFor = (id: string, element: Element | null): Obstacle | null => {
+        if (!element) {
+          previousObstacleCenters.delete(id);
+          return null;
+        }
+        const rect = element.getBoundingClientRect();
+        const bounds = {
+          left: rect.left - canvasRect.left,
+          top: rect.top - canvasRect.top,
+          right: rect.right - canvasRect.left,
+          bottom: rect.bottom - canvasRect.top,
+        };
+        const center = { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 };
+        const last = previousObstacleCenters.get(id);
+        previousObstacleCenters.set(id, center);
+        const limitSpeed = (speed: number) => Math.max(-900, Math.min(900, speed));
+        return {
+          ...bounds,
+          vx: last && elapsed > 0 ? limitSpeed((center.x - last.x) / elapsed) : 0,
+          vy: last && elapsed > 0 ? limitSpeed((center.y - last.y) / elapsed) : 0,
+        };
+      };
+      const obstacles = [
+        obstacleFor("logo", document.getElementById("nk-drag-logo")),
+        obstacleFor("login", document.getElementById("nk-login-card")),
+      ].filter((obstacle): obstacle is Obstacle => obstacle !== null);
+
       for (const bubble of bubbles) {
-        bubble.x += bubble.vx * elapsed;
-        bubble.y += bubble.vy * elapsed;
+        if (!reduce) {
+          bubble.x += bubble.vx * elapsed;
+          bubble.y += bubble.vy * elapsed;
+        }
+        for (const obstacle of obstacles) resolveCircleRect(bubble, obstacle);
         if (bubble.x < bubble.r) { bubble.x = bubble.r; bubble.vx = Math.abs(bubble.vx); }
         if (bubble.x > w - bubble.r) { bubble.x = w - bubble.r; bubble.vx = -Math.abs(bubble.vx); }
         if (bubble.y < bubble.r) { bubble.y = bubble.r; bubble.vy = Math.abs(bubble.vy); }
@@ -183,7 +256,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 
     resize();
     window.addEventListener("resize", resize);
-    if (!reduce) raf = requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
@@ -279,6 +352,7 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
       {phase === "idle" && (
         <div
           ref={logoRef}
+          id="nk-drag-logo"
           className={`nk-logo-drag${drag ? " drag" : ""}`}
           role="button"
           tabIndex={0}
@@ -295,7 +369,6 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
           <Logo size={220} />
         </div>
       )}
-      {phase === "idle" && <p className="nk-drag-hint">Drag the logo left to sign in <span aria-hidden="true">←</span></p>}
       <main className="nk-stage">
         <h1 className="sr-only">NUKE</h1>
         {phase === "open" && (
