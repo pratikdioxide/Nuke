@@ -57,7 +57,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(225,209,219,.88)";
+      ctx.fillStyle = "rgba(245,245,245,.92)";
       ctx.save();
       ctx.beginPath();
       ctx.arc(bubble.x, bubble.y, bubble.r * 0.84, 0, Math.PI * 2);
@@ -97,25 +97,25 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
           bubble.x - bubble.r * 0.35, bubble.y - bubble.r * 0.4, bubble.r * 0.06,
           bubble.x, bubble.y, bubble.r,
         );
-          gradient.addColorStop(0, "rgba(131,88,116,.13)");
-          gradient.addColorStop(1, "rgba(63,41,55,.035)");
+          gradient.addColorStop(0, "rgba(245,169,200,.14)");
+          gradient.addColorStop(1, "rgba(23,23,26,.9)");
           ctx.beginPath();
           ctx.arc(bubble.x, bubble.y, bubble.r * 1.08, 0, Math.PI * 2);
           ctx.lineWidth = 0.8;
-          ctx.strokeStyle = "rgba(144,99,128,.2)";
+          ctx.strokeStyle = "rgba(245,169,200,.22)";
           ctx.stroke();
         ctx.beginPath();
         ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 1;
-          ctx.strokeStyle = "rgba(150,105,134,.63)";
+          ctx.strokeStyle = "rgba(245,169,200,.58)";
         ctx.stroke();
         ctx.beginPath();
           ctx.setLineDash([1.2, 2.8]);
           ctx.arc(bubble.x, bubble.y, bubble.r * 0.76, 0, Math.PI * 2);
           ctx.lineWidth = 0.8;
-          ctx.strokeStyle = "rgba(151,105,135,.46)";
+          ctx.strokeStyle = "rgba(245,169,200,.35)";
           ctx.stroke();
           ctx.setLineDash([]);
         drawTitle(bubble);
