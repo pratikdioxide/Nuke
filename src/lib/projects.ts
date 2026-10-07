@@ -24,6 +24,10 @@ export async function listProjects(): Promise<ProjectCard[]> {
     ORDER BY COALESCE(l.created_at, p.created_at) DESC`);
 }
 
+export async function listLandingProjects(): Promise<{ name: string }[]> {
+  return q<{ name: string }>("SELECT name FROM nuke_projects ORDER BY id");
+}
+
 export async function getProject(slug: string): Promise<Project | null> {
   return (await q<Project>("SELECT * FROM nuke_projects WHERE slug=$1", [slug]))[0] ?? null;
 }
