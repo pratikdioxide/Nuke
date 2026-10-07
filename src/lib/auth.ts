@@ -43,7 +43,7 @@ export async function isAuthed(): Promise<boolean> {
 }
 
 export async function requirePage(): Promise<void> {
-  if (!(await isAuthed())) redirect("/login");
+  if (!(await isAuthed())) redirect("/");
 }
 
 /** For API routes: returns a Response when the request must be rejected. */

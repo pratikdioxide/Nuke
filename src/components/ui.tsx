@@ -1,8 +1,17 @@
 import type { LogLine } from "@/lib/shared";
+import Image from "next/image";
 
 export function Logo({ size = 22 }: { size?: number }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/nuke-logo.svg" alt="" width={size} height={size} aria-hidden="true" style={{ width: size, height: "auto", flex: "none" }} />;
+  return (
+    <Image
+      src="/nuke.svg"
+      alt=""
+      width={600}
+      height={598}
+      aria-hidden="true"
+      style={{ width: size, height: "auto", flex: "none" }}
+    />
+  );
 }
 
 export function StatusBadge({ status, prod }: { status: string | null; prod?: boolean }) {
