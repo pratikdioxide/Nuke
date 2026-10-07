@@ -170,49 +170,33 @@ a.item:hover { background: var(--surface-2); }
   .card-pad { padding: 16px; } .card-head { padding: 12px 16px; }
   .hide-sm { display: none; }
 }
-/* landing: bubbles + slide-to-sign-in */
-.nk { --nk-accent: 245, 169, 200; position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 20px; overflow: hidden; background: radial-gradient(circle at 80% 20%, rgba(245,169,200,.08), transparent 45%), radial-gradient(circle at 10% 90%, rgba(245,169,200,.05), transparent 40%), #0B0B0D; }
+/* landing: monochrome project bubbles + logo-to-sign-in */
+.nk { position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 20px; overflow: hidden; isolation: isolate; color: #f5f5f5; background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.045), transparent 45%), radial-gradient(circle at 10% 90%, rgba(255,255,255,.025), transparent 40%), #000; }
 .nk-bubbles { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-.nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(245,169,200,.035), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
-.nk-watermark { position: fixed; z-index: 0; top: 50%; right: -70px; pointer-events: none; transform: translateY(-50%); }
-.nk-watermark img { display: block; width: 220px !important; height: auto !important; opacity: .12; animation: nk-logo-rotate 60s linear infinite; }
-.nk-stage { position: relative; z-index: 1; width: 100%; max-width: 380px; display: grid; justify-items: center; gap: 18px; text-align: center; }
-.nk-word { margin: 0; font-size: 44px; font-weight: 800; letter-spacing: .32em; padding-left: .32em; line-height: 1; display: flex; }
-.nk-word span { display: inline-block; animation: nk-letter .8s cubic-bezier(.2,.8,.2,1) both; }
-.nk-tag { margin: 0; color: var(--muted); animation: rise-in .6s .9s ease both; }
+.nk-bubble-links { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+.nk-bubble-link { position: absolute; display: block; transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; pointer-events: auto; background: transparent; }
+.nk-bubble-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.nk-bubble-link:hover::after { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; }
+.nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.025), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
+.nk-logo-drag { position: fixed; z-index: 3; top: 50%; right: -70px; width: 220px; height: 220px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .24s ease; }
+.nk-logo-drag img { display: block; width: 100% !important; height: auto !important; opacity: .16; filter: grayscale(1); animation: nk-logo-rotate 60s linear infinite; transition: opacity .18s ease, filter .18s ease; }
+.nk-logo-drag:hover img, .nk-logo-drag:focus-visible img { opacity: .28; }
+.nk-logo-drag.drag { cursor: grabbing; }
+.nk-logo-drag.drag img { opacity: .34; animation-play-state: paused; }
+.nk-logo-drag:focus-visible { outline: 1px solid rgba(255,255,255,.65); outline-offset: 7px; border-radius: 50%; }
+.nk-stage { position: relative; z-index: 2; width: 100%; max-width: 380px; display: grid; justify-items: center; text-align: center; pointer-events: none; }
 .nk-h { font-size: 22px; margin: 0; letter-spacing: -.02em; }
-.nk-slide { width: 100%; display: grid; gap: 12px; justify-items: center; margin-top: 14px; animation: rise-in .6s .6s ease both; transition: opacity .35s ease, transform .35s ease; }
-.nk-slide.is-done { opacity: 0; transform: translateY(-8px) scale(.97); pointer-events: none; }
-.nk-track { position: relative; width: min(340px, 100%); height: 88px; border-radius: 999px; border: 1px solid rgba(var(--nk-accent),.36); background: rgba(11,8,12,.76); backdrop-filter: blur(8px); overflow: hidden; display: grid; place-items: center; }
-.nk-fill { position: absolute; right: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(270deg, rgba(var(--nk-accent),.03), rgba(var(--nk-accent),.24)); transition: width .4s cubic-bezier(.2,.9,.3,1); }
-.nk-fill.drag { transition: none; }
-.nk-project-count { margin: -10px 0 0; color: rgba(var(--nk-accent),.78); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
-.nk-hint { position: relative; padding-right: 56px; font-weight: 600; letter-spacing: .04em; background: linear-gradient(90deg, #8c7b83 30%, #f5a9c8 50%, #8c7b83 70%) 0 0 / 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: nk-sheen 2.6s linear infinite; }
-.nk-chev { position: absolute; left: 22px; top: 50%; translate: 0 -52%; font-size: 26px; letter-spacing: -.12em; color: rgba(var(--nk-accent),.68); animation: nk-nudge-left 1.4s ease-in-out infinite; }
-.nk-knob { position: absolute; right: 8px; top: 8px; width: 72px; height: 72px; border-radius: 50%; cursor: grab; touch-action: none; user-select: none; transition: transform .4s cubic-bezier(.2,.9,.3,1); }
-.nk-knob.drag { transition: none; cursor: grabbing; }
-.nk-knob:focus-visible { outline: 2px solid rgba(var(--nk-accent),.9); outline-offset: 3px; }
-.nk-knob-in { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #211821, #050506); border: 1px solid rgba(var(--nk-accent),.55); box-shadow: 0 0 24px rgba(var(--nk-accent),.16); animation: nk-pop 1s .3s cubic-bezier(.2,1.4,.4,1) both, nk-float 3.2s 1.3s ease-in-out infinite; }
-.nk-knob-in img { opacity: .66; animation: nk-logo-rotate 60s linear infinite; }
-.nk-knob-in::before, .nk-knob-in::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(var(--nk-accent),.48); animation: nk-ring 2.6s 1.2s ease-out infinite; }
-.nk-knob-in::after { animation-delay: 2.5s; }
-.nk-knob.drag .nk-knob-in { animation: none; box-shadow: 0 0 34px rgba(var(--nk-accent),.34); }
-.nk-knob.drag .nk-knob-in::before, .nk-knob.drag .nk-knob-in::after { display: none; }
-.nk-card { width: 100%; text-align: left; background: rgba(23,23,26,.96); border-color: #2A2A2E; backdrop-filter: blur(10px); margin-top: 14px; animation: nk-card .5s cubic-bezier(.2,.8,.2,1) both; }
+.nk-drag-hint { position: fixed; z-index: 1; left: 50%; bottom: 22px; margin: 0; transform: translateX(-50%); color: rgba(255,255,255,.55); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-align: center; text-transform: uppercase; pointer-events: none; }
+.nk-drag-hint span { padding-left: 8px; color: #fff; }
+.nk-card { width: 100%; text-align: left; background: rgba(10,10,10,.97); border-color: #333; margin-top: 14px; animation: nk-card .35s cubic-bezier(.2,.8,.2,1) both; pointer-events: auto; }
+.nk-card .error { color: #ededed; }
 @media (max-width: 640px) {
-  .nk-watermark { right: -52px; }
-  .nk-watermark img { width: 160px !important; }
+  .nk-logo-drag { right: -52px; width: 160px; height: 160px; }
 }
 @media (max-width: 480px) {
-  .nk-watermark img { width: 130px !important; }
+  .nk-logo-drag { right: -42px; width: 130px; height: 130px; }
+  .nk-drag-hint { left: 14px; right: 14px; transform: none; font-size: 9px; }
 }
-@keyframes nk-letter { from { opacity: 0; transform: translateY(16px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
-@keyframes nk-pop { from { opacity: 0; transform: scale(.2) rotate(-40deg); } to { opacity: 1; transform: none; } }
-@keyframes nk-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
-@keyframes nk-ring { from { opacity: .6; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
-@keyframes nk-sheen { to { background-position: -220% 0; } }
-@keyframes nk-nudge { 0%, 100% { translate: 0 -52%; } 50% { translate: 6px -52%; } }
-@keyframes nk-nudge-left { 0%, 100% { translate: 0 -52%; } 50% { translate: -6px -52%; } }
 @keyframes nk-logo-rotate { to { transform: rotate(360deg); } }
 @keyframes nk-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
 @keyframes nk-card { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }

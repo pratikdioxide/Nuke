@@ -3,12 +3,13 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import LoginForm from "@/components/LoginForm";
 import { Logo } from "@/components/ui";
 
-type LandingProject = { name: string };
-type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string };
+type LandingProject = { name: string; slug: string };
+type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
 
 /** Project bubbles move freely and bounce off one another and the viewport edges. */
 function Bubbles({ projects }: { projects: LandingProject[] | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   useEffect(() => {
     const cv = ref.current;
@@ -57,7 +58,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(245,245,245,.92)";
+      ctx.fillStyle = "rgba(255,255,255,.9)";
       ctx.save();
       ctx.beginPath();
       ctx.arc(bubble.x, bubble.y, bubble.r * 0.84, 0, Math.PI * 2);
@@ -92,34 +93,41 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
-      for (const bubble of bubbles) {
+      bubbles.forEach((bubble, index) => {
+        const link = linkRefs.current[index];
+        if (link) {
+          link.style.left = `${bubble.x}px`;
+          link.style.top = `${bubble.y}px`;
+          link.style.width = `${bubble.r * 2.16}px`;
+          link.style.height = `${bubble.r * 2.16}px`;
+        }
         const gradient = ctx.createRadialGradient(
           bubble.x - bubble.r * 0.35, bubble.y - bubble.r * 0.4, bubble.r * 0.06,
           bubble.x, bubble.y, bubble.r,
         );
-          gradient.addColorStop(0, "rgba(245,169,200,.14)");
-          gradient.addColorStop(1, "rgba(23,23,26,.9)");
-          ctx.beginPath();
-          ctx.arc(bubble.x, bubble.y, bubble.r * 1.08, 0, Math.PI * 2);
-          ctx.lineWidth = 0.8;
-          ctx.strokeStyle = "rgba(245,169,200,.22)";
-          ctx.stroke();
+        gradient.addColorStop(0, "rgba(255,255,255,.1)");
+        gradient.addColorStop(1, "rgba(255,255,255,.025)");
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.r * 1.08, 0, Math.PI * 2);
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = "rgba(255,255,255,.17)";
+        ctx.stroke();
         ctx.beginPath();
         ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 1;
-          ctx.strokeStyle = "rgba(245,169,200,.58)";
+        ctx.strokeStyle = "rgba(255,255,255,.58)";
         ctx.stroke();
         ctx.beginPath();
-          ctx.setLineDash([1.2, 2.8]);
-          ctx.arc(bubble.x, bubble.y, bubble.r * 0.76, 0, Math.PI * 2);
-          ctx.lineWidth = 0.8;
-          ctx.strokeStyle = "rgba(245,169,200,.35)";
-          ctx.stroke();
-          ctx.setLineDash([]);
+        ctx.setLineDash([1.2, 2.8]);
+        ctx.arc(bubble.x, bubble.y, bubble.r * 0.76, 0, Math.PI * 2);
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = "rgba(255,255,255,.32)";
+        ctx.stroke();
+        ctx.setLineDash([]);
         drawTitle(bubble);
-      }
+      });
     };
 
     const resize = () => {
@@ -133,7 +141,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       const count = projects?.length ?? 0;
       const idealRadius = Math.sqrt((w * h * 0.08) / (Math.max(1, count) * Math.PI));
       const radius = Math.max(16, Math.min(36, idealRadius, w * 0.085, h * 0.14));
-      bubbles = (projects ?? []).map(({ name }) => {
+      bubbles = (projects ?? []).map(({ name, slug }) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
         for (let attempt = 0; attempt < 70; attempt++) {
@@ -146,7 +154,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         }
         const angle = Math.random() * Math.PI * 2;
         const speed = 24 + Math.random() * 42;
-        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name };
+        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name, slug };
       });
       draw();
     };
@@ -185,89 +193,113 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
   return (
     <>
       <canvas ref={ref} className="nk-bubbles" aria-hidden="true" />
-      {projects && (
-        <ul className="sr-only" aria-label="Projects shown in the background">
-          {projects.map((project, index) => <li key={`${project.name}-${index}`}>{project.name}</li>)}
-        </ul>
-      )}
+      <nav className="nk-bubble-links" aria-label="Live projects">
+        {projects?.map((project, index) => (
+          <a
+            key={project.slug}
+            ref={(element) => { linkRefs.current[index] = element; }}
+            className="nk-bubble-link"
+            href={`/${encodeURIComponent(project.slug)}`}
+            aria-label={`Open ${project.name}`}
+            title={project.name}
+          />
+        ))}
+      </nav>
     </>
   );
 }
 
-const KNOB = 72, PAD = 8;
-
 export default function Landing({ missing, projects }: { missing: string[]; projects: LandingProject[] | null }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const start = useRef(0);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const pointerStart = useRef(0);
+  const startingOffset = useRef(0);
+  const logoOffset = useRef(0);
+  const pointerIsDown = useRef(false);
   const [x, setX] = useState(0);
   const [drag, setDrag] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "done" | "open">("idle");
+  const [phase, setPhase] = useState<"idle" | "open">("idle");
 
-  useEffect(() => () => clearTimeout(timer.current), []);
-
-  const max = () => Math.max(1, (trackRef.current?.clientWidth ?? 340) - KNOB - PAD * 2);
-  const progress = Math.min(1, x / max());
-
-  const unlock = () => {
-    if (phase !== "idle") return;
-    setDrag(false); setX(max()); setPhase("done");
-    timer.current = setTimeout(() => setPhase("open"), 460);
+  const moveLogo = (next: number) => {
+    const bounded = Math.max(-window.innerWidth, Math.min(0, next));
+    logoOffset.current = bounded;
+    setX(bounded);
   };
-  const back = () => { clearTimeout(timer.current); setPhase("idle"); setX(0); };
+  const unlock = () => {
+    pointerIsDown.current = false;
+    setDrag(false);
+    setPhase("open");
+  };
+  const back = () => {
+    moveLogo(0);
+    setPhase("idle");
+  };
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (phase !== "idle") return;
+    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    start.current = e.clientX + x; setDrag(true);
+    pointerStart.current = e.clientX;
+    startingOffset.current = logoOffset.current;
+    pointerIsDown.current = true;
+    setDrag(true);
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
-    if (!drag) return;
-    setX(Math.min(max(), Math.max(0, start.current - e.clientX)));
+    if (!pointerIsDown.current) return;
+    moveLogo(startingOffset.current + e.clientX - pointerStart.current);
   };
   const up = () => {
-    if (!drag) return;
+    if (!pointerIsDown.current) return;
+    pointerIsDown.current = false;
     setDrag(false);
-    if (x >= max() * 0.88) unlock(); else setX(0);
+    const rect = logoRef.current?.getBoundingClientRect();
+    if (rect && rect.left + rect.width / 2 <= window.innerWidth * 0.52) unlock();
+    else moveLogo(0);
+  };
+  const cancel = () => {
+    pointerIsDown.current = false;
+    setDrag(false);
+    moveLogo(0);
   };
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " " || e.key === "ArrowLeft") { e.preventDefault(); unlock(); }
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); unlock(); return; }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const currentOffset = logoOffset.current;
+      const next = currentOffset + (e.key === "ArrowLeft" ? -64 : 64);
+      const rect = logoRef.current?.getBoundingClientRect();
+      moveLogo(next);
+      if (rect && rect.left + rect.width / 2 + (next - currentOffset) <= window.innerWidth * 0.52) unlock();
+    }
   };
 
   return (
     <div className="nk">
       <Bubbles projects={projects} />
-      <div className="nk-watermark" aria-hidden="true"><Logo size={160} /></div>
       <div className="nk-glow" aria-hidden="true" />
+      {phase === "idle" && (
+        <div
+          ref={logoRef}
+          className={`nk-logo-drag${drag ? " drag" : ""}`}
+          role="button"
+          tabIndex={0}
+          aria-label="Drag the Nuke logo left to sign in"
+          aria-controls="nk-login-card"
+          aria-expanded={false}
+          style={{ transform: `translate(${x}px, -50%)` }}
+          onPointerDown={down}
+          onPointerMove={move}
+          onPointerUp={up}
+          onPointerCancel={cancel}
+          onKeyDown={key}
+        >
+          <Logo size={220} />
+        </div>
+      )}
+      {phase === "idle" && <p className="nk-drag-hint">Drag the logo left to sign in <span aria-hidden="true">←</span></p>}
       <main className="nk-stage">
-        <h1 className="nk-word" aria-label="NUKE">
-          {"NUKE".split("").map((c, i) => <span key={i} aria-hidden="true" style={{ animationDelay: `${0.45 + i * 0.09}s` }}>{c}</span>)}
-        </h1>
-        <p className="nk-tag">Private hosting for your HTML files and folders.</p>
-        <p className="nk-project-count">
-          {projects === null ? "Project list unavailable" : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}
-        </p>
-
-        {phase !== "open" ? (
-          <section className={`nk-slide${phase === "done" ? " is-done" : ""}`}>
-            <div className="nk-track" ref={trackRef}>
-              <div className={`nk-fill${drag ? " drag" : ""}`} style={{ width: x + KNOB + PAD }} />
-              <span className="nk-hint" style={{ opacity: Math.max(0, 1 - progress * 1.5) }}>Drag left to sign in</span>
-              <span className="nk-chev" aria-hidden="true" style={{ opacity: Math.max(0, 1 - progress * 2) }}>‹‹‹</span>
-              <div
-                className={`nk-knob${drag ? " drag" : ""}`}
-                role="slider" tabIndex={0} aria-label="Slide to sign in"
-                aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
-                 style={{ transform: `translateX(${-x}px)` }}
-                onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key}
-              >
-                <span className="nk-knob-in"><Logo size={40} /></span>
-              </div>
-            </div>
-            <span className="hint">Drag the logo left, or press Enter on it.</span>
-          </section>
-        ) : (
-          <section className="nk-card card card-pad stack" onKeyDown={(e) => { if (e.key === "Escape") back(); }}>
+        <h1 className="sr-only">NUKE</h1>
+        {phase === "open" && (
+          <section id="nk-login-card" className="nk-card card card-pad stack" onKeyDown={(e) => { if (e.key === "Escape") back(); }}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div className="brand"><Logo size={22} /> NUKE</div>
               <button type="button" className="btn btn-sm" onClick={back}>Back</button>
