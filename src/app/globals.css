@@ -171,9 +171,11 @@ a.item:hover { background: var(--surface-2); }
   .hide-sm { display: none; }
 }
 /* landing: bubbles + slide-to-sign-in */
-.nk { position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 20px; overflow: hidden; }
+.nk { --nk-accent: 145, 101, 132; position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 20px; overflow: hidden; background: radial-gradient(ellipse 32% 44% at 84% 43%, rgba(92,58,81,.12), transparent 100%), #080709; }
 .nk-bubbles { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-.nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.07), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
+.nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(127,82,111,.075), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
+.nk-watermark { position: fixed; z-index: 0; top: 39%; right: clamp(-42px, -4vw, -14px); pointer-events: none; opacity: .22; transform: rotate(-8deg); }
+.nk-watermark img { display: block; width: clamp(100px, 16vw, 160px) !important; height: auto !important; filter: brightness(0) saturate(100%) invert(38%) sepia(12%) saturate(650%) hue-rotate(267deg) brightness(88%) contrast(82%); animation: nk-logo-rotate 96s linear infinite; }
 .nk-stage { position: relative; z-index: 1; width: 100%; max-width: 380px; display: grid; justify-items: center; gap: 18px; text-align: center; }
 .nk-word { margin: 0; font-size: 44px; font-weight: 800; letter-spacing: .32em; padding-left: .32em; line-height: 1; display: flex; }
 .nk-word span { display: inline-block; animation: nk-letter .8s cubic-bezier(.2,.8,.2,1) both; }
@@ -181,22 +183,22 @@ a.item:hover { background: var(--surface-2); }
 .nk-h { font-size: 22px; margin: 0; letter-spacing: -.02em; }
 .nk-slide { width: 100%; display: grid; gap: 12px; justify-items: center; margin-top: 14px; animation: rise-in .6s .6s ease both; transition: opacity .35s ease, transform .35s ease; }
 .nk-slide.is-done { opacity: 0; transform: translateY(-8px) scale(.97); pointer-events: none; }
-.nk-track { position: relative; width: min(340px, 100%); height: 88px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(10,10,10,.65); backdrop-filter: blur(8px); overflow: hidden; display: grid; place-items: center; }
-.nk-fill { position: absolute; right: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(270deg, rgba(255,255,255,.02), rgba(255,255,255,.14)); transition: width .4s cubic-bezier(.2,.9,.3,1); }
+.nk-track { position: relative; width: min(340px, 100%); height: 88px; border-radius: 999px; border: 1px solid rgba(var(--nk-accent),.36); background: rgba(11,8,12,.76); backdrop-filter: blur(8px); overflow: hidden; display: grid; place-items: center; }
+.nk-fill { position: absolute; right: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(270deg, rgba(var(--nk-accent),.03), rgba(var(--nk-accent),.24)); transition: width .4s cubic-bezier(.2,.9,.3,1); }
 .nk-fill.drag { transition: none; }
-.nk-project-count { margin: -10px 0 0; color: var(--faint); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
-.nk-hint { position: relative; padding-right: 56px; font-weight: 600; letter-spacing: .04em; background: linear-gradient(90deg, var(--faint) 30%, #fff 50%, var(--faint) 70%) 0 0 / 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: nk-sheen 2.6s linear infinite; }
-.nk-chev { position: absolute; left: 22px; top: 50%; translate: 0 -52%; font-size: 26px; letter-spacing: -.12em; color: var(--faint); animation: nk-nudge-left 1.4s ease-in-out infinite; }
+.nk-project-count { margin: -10px 0 0; color: rgba(var(--nk-accent),.78); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.nk-hint { position: relative; padding-right: 56px; font-weight: 600; letter-spacing: .04em; background: linear-gradient(90deg, #857780 30%, #d8c4d1 50%, #857780 70%) 0 0 / 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: nk-sheen 2.6s linear infinite; }
+.nk-chev { position: absolute; left: 22px; top: 50%; translate: 0 -52%; font-size: 26px; letter-spacing: -.12em; color: rgba(var(--nk-accent),.68); animation: nk-nudge-left 1.4s ease-in-out infinite; }
 .nk-knob { position: absolute; right: 8px; top: 8px; width: 72px; height: 72px; border-radius: 50%; cursor: grab; touch-action: none; user-select: none; transition: transform .4s cubic-bezier(.2,.9,.3,1); }
 .nk-knob.drag { transition: none; cursor: grabbing; }
-.nk-knob:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.nk-knob-in { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #1c1c1c, #050505); border: 1px solid #3a3a3a; box-shadow: 0 0 24px rgba(255,255,255,.12); animation: nk-pop 1s .3s cubic-bezier(.2,1.4,.4,1) both, nk-float 3.2s 1.3s ease-in-out infinite; }
+.nk-knob:focus-visible { outline: 2px solid rgba(var(--nk-accent),.9); outline-offset: 3px; }
+.nk-knob-in { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #211821, #050506); border: 1px solid rgba(var(--nk-accent),.55); box-shadow: 0 0 24px rgba(var(--nk-accent),.16); animation: nk-pop 1s .3s cubic-bezier(.2,1.4,.4,1) both, nk-float 3.2s 1.3s ease-in-out infinite; }
 .nk-knob-in img { opacity: .66; animation: nk-logo-rotate 32s linear infinite; }
-.nk-knob-in::before, .nk-knob-in::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); animation: nk-ring 2.6s 1.2s ease-out infinite; }
+.nk-knob-in::before, .nk-knob-in::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(var(--nk-accent),.48); animation: nk-ring 2.6s 1.2s ease-out infinite; }
 .nk-knob-in::after { animation-delay: 2.5s; }
-.nk-knob.drag .nk-knob-in { animation: none; box-shadow: 0 0 34px rgba(255,255,255,.28); }
+.nk-knob.drag .nk-knob-in { animation: none; box-shadow: 0 0 34px rgba(var(--nk-accent),.34); }
 .nk-knob.drag .nk-knob-in::before, .nk-knob.drag .nk-knob-in::after { display: none; }
-.nk-card { width: 100%; text-align: left; background: rgba(10,10,10,.82); backdrop-filter: blur(10px); margin-top: 14px; animation: nk-card .5s cubic-bezier(.2,.8,.2,1) both; }
+.nk-card { width: 100%; text-align: left; background: rgba(13,9,14,.88); border-color: rgba(var(--nk-accent),.32); backdrop-filter: blur(10px); margin-top: 14px; animation: nk-card .5s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes nk-letter { from { opacity: 0; transform: translateY(16px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
 @keyframes nk-pop { from { opacity: 0; transform: scale(.2) rotate(-40deg); } to { opacity: 1; transform: none; } }
 @keyframes nk-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }

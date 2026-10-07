@@ -57,7 +57,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(255,255,255,.84)";
+      ctx.fillStyle = "rgba(225,209,219,.88)";
       ctx.save();
       ctx.beginPath();
       ctx.arc(bubble.x, bubble.y, bubble.r * 0.84, 0, Math.PI * 2);
@@ -97,19 +97,27 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
           bubble.x - bubble.r * 0.35, bubble.y - bubble.r * 0.4, bubble.r * 0.06,
           bubble.x, bubble.y, bubble.r,
         );
-        gradient.addColorStop(0, "rgba(255,255,255,.11)");
-        gradient.addColorStop(1, "rgba(255,255,255,.025)");
+          gradient.addColorStop(0, "rgba(131,88,116,.13)");
+          gradient.addColorStop(1, "rgba(63,41,55,.035)");
+          ctx.beginPath();
+          ctx.arc(bubble.x, bubble.y, bubble.r * 1.08, 0, Math.PI * 2);
+          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = "rgba(144,99,128,.2)";
+          ctx.stroke();
         ctx.beginPath();
         ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,.25)";
+          ctx.strokeStyle = "rgba(150,105,134,.63)";
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(bubble.x - bubble.r * 0.24, bubble.y - bubble.r * 0.3, bubble.r * 0.09, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,.34)";
-        ctx.fill();
+          ctx.setLineDash([1.2, 2.8]);
+          ctx.arc(bubble.x, bubble.y, bubble.r * 0.76, 0, Math.PI * 2);
+          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = "rgba(151,105,135,.46)";
+          ctx.stroke();
+          ctx.setLineDash([]);
         drawTitle(bubble);
       }
     };
@@ -123,8 +131,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const count = projects?.length ?? 0;
-      const idealRadius = Math.sqrt((w * h * 0.2) / (Math.max(1, count) * Math.PI));
-      const radius = Math.max(16, Math.min(74, idealRadius, w * 0.34, h * 0.34));
+      const idealRadius = Math.sqrt((w * h * 0.08) / (Math.max(1, count) * Math.PI));
+      const radius = Math.max(16, Math.min(36, idealRadius, w * 0.085, h * 0.14));
       bubbles = (projects ?? []).map(({ name }) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
@@ -229,6 +237,7 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
   return (
     <div className="nk">
       <Bubbles projects={projects} />
+      <div className="nk-watermark" aria-hidden="true"><Logo size={160} /></div>
       <div className="nk-glow" aria-hidden="true" />
       <main className="nk-stage">
         <h1 className="nk-word" aria-label="NUKE">
