@@ -1,0 +1,1 @@
+- [Dashboard query payloads](dashboard-query-payloads.md) — exclude stored project content/files from summary-card queries to keep dashboards independent of site size.

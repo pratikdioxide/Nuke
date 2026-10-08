@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import LoginForm from "@/components/LoginForm";
 import { Logo } from "@/components/ui";
 
 type LandingProject = { name: string; slug: string };
 type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
 type Obstacle = { left: number; top: number; right: number; bottom: number; vx: number; vy: number };
+type Point = { x: number; y: number };
 
 function resolveCircleRect(bubble: Bubble, obstacle: Obstacle) {
   const nearestX = Math.max(obstacle.left, Math.min(bubble.x, obstacle.right));
@@ -284,64 +285,100 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 
 export default function Landing({ missing, projects }: { missing: string[]; projects: LandingProject[] | null }) {
   const logoRef = useRef<HTMLDivElement>(null);
-  const pointerStart = useRef(0);
-  const startingOffset = useRef(0);
-  const logoOffset = useRef(0);
+  const pointerStart = useRef<Point>({ x: 0, y: 0 });
+  const startingOffset = useRef<Point>({ x: 0, y: 0 });
+  const logoOffset = useRef<Point>({ x: 0, y: 0 });
+  const logoBounds = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
   const pointerIsDown = useRef(false);
-  const [x, setX] = useState(0);
+  const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [drag, setDrag] = useState(false);
   const [phase, setPhase] = useState<"idle" | "open">("idle");
 
-  const moveLogo = (next: number) => {
-    const bounded = Math.max(-window.innerWidth, Math.min(0, next));
+  const moveLogo = useCallback((next: Point) => {
+    const bounds = logoBounds.current;
+    const bounded = bounds ? {
+      x: Math.max(0, Math.min(Math.max(0, window.innerWidth - bounds.width), bounds.left + next.x)) - bounds.left,
+      y: Math.max(0, Math.min(Math.max(0, window.innerHeight - bounds.height), bounds.top + next.y)) - bounds.top,
+    } : next;
     logoOffset.current = bounded;
-    setX(bounded);
-  };
+    setOffset(bounded);
+    return bounded;
+  }, []);
+
   const unlock = () => {
     pointerIsDown.current = false;
     setDrag(false);
     setPhase("open");
   };
+
   const back = () => {
-    moveLogo(0);
+    moveLogo({ x: 0, y: 0 });
     setPhase("idle");
   };
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const element = logoRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      const current = logoOffset.current;
+      logoBounds.current = {
+        left: rect.left - current.x,
+        top: rect.top - current.y,
+        width: rect.width,
+        height: rect.height,
+      };
+      moveLogo(current);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [moveLogo, phase]);
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (phase !== "idle") return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    pointerStart.current = e.clientX;
-    startingOffset.current = logoOffset.current;
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+    startingOffset.current = { ...logoOffset.current };
     pointerIsDown.current = true;
     setDrag(true);
   };
+
   const move = (e: PointerEvent<HTMLDivElement>) => {
     if (!pointerIsDown.current) return;
-    moveLogo(startingOffset.current + e.clientX - pointerStart.current);
+    moveLogo({
+      x: startingOffset.current.x + e.clientX - pointerStart.current.x,
+      y: startingOffset.current.y + e.clientY - pointerStart.current.y,
+    });
   };
+
   const up = () => {
     if (!pointerIsDown.current) return;
     pointerIsDown.current = false;
     setDrag(false);
-    const rect = logoRef.current?.getBoundingClientRect();
-    if (rect && rect.left + rect.width / 2 <= window.innerWidth * 0.52) unlock();
-    else moveLogo(0);
+    const bounds = logoBounds.current;
+    const current = logoOffset.current;
+    if (bounds && bounds.left + current.x + bounds.width / 2 <= window.innerWidth * 0.52) unlock();
   };
+
   const cancel = () => {
     pointerIsDown.current = false;
     setDrag(false);
-    moveLogo(0);
+    moveLogo(startingOffset.current);
   };
+
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); unlock(); return; }
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
-      const currentOffset = logoOffset.current;
-      const next = currentOffset + (e.key === "ArrowLeft" ? -64 : 64);
-      const rect = logoRef.current?.getBoundingClientRect();
-      moveLogo(next);
-      if (rect && rect.left + rect.width / 2 + (next - currentOffset) <= window.innerWidth * 0.52) unlock();
+      const current = logoOffset.current;
+      const next = moveLogo({
+        x: current.x + (e.key === "ArrowLeft" ? -64 : e.key === "ArrowRight" ? 64 : 0),
+        y: current.y + (e.key === "ArrowUp" ? -64 : e.key === "ArrowDown" ? 64 : 0),
+      });
+      const bounds = logoBounds.current;
+      if (e.key === "ArrowLeft" && bounds && bounds.left + next.x + bounds.width / 2 <= window.innerWidth * 0.52) unlock();
     }
   };
 
@@ -356,10 +393,10 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
           className={`nk-logo-drag${drag ? " drag" : ""}`}
           role="button"
           tabIndex={0}
-          aria-label="Drag the Nuke logo left to sign in"
+          aria-label="Drag the Nuke logo anywhere. Move it left to sign in."
           aria-controls="nk-login-card"
           aria-expanded={false}
-          style={{ transform: `translate(${x}px, -50%)` }}
+          style={{ transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))` }}
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}

@@ -171,35 +171,36 @@ a.item:hover { background: var(--surface-2); }
   .hide-sm { display: none; }
 }
 /* landing: monochrome project bubbles + logo-to-sign-in */
-.nk { position: relative; min-height: 100vh; min-height: 100svh; min-height: 100dvh; display: grid; place-items: center; padding: 20px; overflow: hidden; isolation: isolate; color: #f5f5f5; background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.045), transparent 45%), radial-gradient(circle at 10% 90%, rgba(255,255,255,.025), transparent 40%), #000; }
+.nk { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; min-height: 0; display: grid; place-items: center; padding: 20px; overflow: hidden; overscroll-behavior: none; isolation: isolate; color: #f5f5f5; background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.045), transparent 45%), radial-gradient(circle at 10% 90%, rgba(255,255,255,.025), transparent 40%), #000; }
 .nk-bubbles { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 .nk-bubble-links { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 .nk-bubble-link { position: absolute; display: block; transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; pointer-events: auto; background: transparent; }
 .nk-bubble-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .nk-bubble-link:hover::after { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; }
 .nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.025), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
-.nk-logo-drag { position: fixed; z-index: 3; top: 50%; right: -70px; width: 220px; height: 220px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .24s ease; }
+.nk-logo-drag { position: fixed; z-index: 3; top: 50%; left: clamp(110px, 76vw, calc(100vw - 110px)); width: 220px; height: 220px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .24s ease; }
 .nk-logo-drag img { display: block; width: 100% !important; height: auto !important; opacity: .16; filter: grayscale(1); animation: nk-logo-rotate 60s linear infinite; transition: opacity .18s ease, filter .18s ease; }
 .nk-logo-drag:hover img, .nk-logo-drag:focus-visible img { opacity: .28; }
 .nk-logo-drag.drag { cursor: grabbing; }
 .nk-logo-drag.drag img { opacity: .34; animation-play-state: paused; }
 .nk-logo-drag:focus-visible { outline: 1px solid rgba(255,255,255,.65); outline-offset: 7px; border-radius: 50%; }
-.nk-stage { position: relative; z-index: 2; width: 100%; max-width: 380px; display: grid; justify-items: center; text-align: center; pointer-events: none; }
+.nk-stage { position: relative; z-index: 2; width: 100%; max-width: 380px; min-width: 0; max-height: 100%; display: grid; justify-items: center; text-align: center; pointer-events: none; }
 .nk-h { font-size: 22px; margin: 0; letter-spacing: -.02em; }
-.nk-card { width: 100%; text-align: left; background: rgba(10,10,10,.97); border-color: #333; margin-top: 14px; scroll-margin-block: 16px; animation: nk-card .35s cubic-bezier(.2,.8,.2,1) both; pointer-events: auto; }
+.nk-card { width: 100%; max-width: 100%; max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; text-align: left; background: rgba(10,10,10,.97); border-color: #333; margin-top: 14px; scroll-margin-block: 16px; animation: nk-card .35s cubic-bezier(.2,.8,.2,1) both; pointer-events: auto; }
 .nk-card .error { color: #ededed; }
 @media (max-width: 640px) {
   .nk {
     padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
-    overflow-x: clip;
-    overflow-y: visible;
   }
-  .nk-stage { max-width: 420px; }
-  .nk-card { margin-top: 0; padding: clamp(14px, 4vw, 18px); gap: 14px; border-radius: 12px; }
+  .nk-stage { width: 100%; max-width: 420px; }
+  .nk-card {
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+    margin-top: 0; padding: clamp(14px, 4vw, 18px); gap: 14px; border-radius: 12px;
+  }
   .nk-card .btn { min-height: 46px; }
   .nk-card .btn-sm { height: 44px; }
   .nk-card .input { min-height: 48px; font-size: 16px; }
-  .nk-logo-drag { right: clamp(-36px, -7vw, -22px); width: clamp(124px, 34vw, 160px); height: clamp(124px, 34vw, 160px); }
+  .nk-logo-drag { left: clamp(62px, 74vw, calc(100vw - 62px)); width: clamp(124px, 34vw, 160px); height: clamp(124px, 34vw, 160px); }
   .nk-logo-drag img { opacity: .3; }
   .nk-logo-drag:hover img, .nk-logo-drag:focus-visible img { opacity: .4; }
   .nk-bubble-link { touch-action: manipulation; }
