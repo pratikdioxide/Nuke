@@ -286,22 +286,35 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 export default function Landing({ missing, projects }: { missing: string[]; projects: LandingProject[] | null }) {
   const logoRef = useRef<HTMLDivElement>(null);
   const pointerStart = useRef<Point>({ x: 0, y: 0 });
-  const startingOffset = useRef<Point>({ x: 0, y: 0 });
-  const logoOffset = useRef<Point>({ x: 0, y: 0 });
-  const logoBounds = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+  const startingPosition = useRef<Point>({ x: 0, y: 0 });
+  const logoPosition = useRef<Point | null>(null);
+  const initialPosition = useRef<Point | null>(null);
   const pointerIsDown = useRef(false);
-  const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
+  const [position, setPosition] = useState<Point | null>(null);
   const [drag, setDrag] = useState(false);
   const [phase, setPhase] = useState<"idle" | "open">("idle");
+  const statusMessage = projects === null
+    ? missing.includes("DATABASE_URL")
+      ? "Project bubbles need a database connection."
+      : "Project bubbles are unavailable right now."
+    : projects.length === 0
+      ? "No active projects to show."
+      : null;
 
-  const moveLogo = useCallback((next: Point) => {
-    const bounds = logoBounds.current;
-    const bounded = bounds ? {
-      x: Math.max(0, Math.min(Math.max(0, window.innerWidth - bounds.width), bounds.left + next.x)) - bounds.left,
-      y: Math.max(0, Math.min(Math.max(0, window.innerHeight - bounds.height), bounds.top + next.y)) - bounds.top,
-    } : next;
-    logoOffset.current = bounded;
-    setOffset(bounded);
+  const moveLogo = useCallback((next: Point): Point => {
+    const element = logoRef.current;
+    if (!element) {
+      logoPosition.current = next;
+      setPosition(next);
+      return next;
+    }
+    const rect = element.getBoundingClientRect();
+    const bounded = {
+      x: Math.max(0, Math.min(Math.max(0, window.innerWidth - rect.width), next.x)),
+      y: Math.max(0, Math.min(Math.max(0, window.innerHeight - rect.height), next.y)),
+    };
+    logoPosition.current = bounded;
+    setPosition(bounded);
     return bounded;
   }, []);
 
@@ -312,7 +325,7 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
   };
 
   const back = () => {
-    moveLogo({ x: 0, y: 0 });
+    moveLogo(initialPosition.current ?? { x: 0, y: 0 });
     setPhase("idle");
   };
 
@@ -321,13 +334,8 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
       const element = logoRef.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      const current = logoOffset.current;
-      logoBounds.current = {
-        left: rect.left - current.x,
-        top: rect.top - current.y,
-        width: rect.width,
-        height: rect.height,
-      };
+      const current = logoPosition.current ?? { x: rect.left, y: rect.top };
+      if (!initialPosition.current) initialPosition.current = { ...current };
       moveLogo(current);
     };
     measure();
@@ -339,8 +347,12 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
     if (phase !== "idle") return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const current = logoPosition.current ?? { x: rect.left, y: rect.top };
+    logoPosition.current = current;
+    setPosition(current);
     pointerStart.current = { x: e.clientX, y: e.clientY };
-    startingOffset.current = { ...logoOffset.current };
+    startingPosition.current = { ...current };
     pointerIsDown.current = true;
     setDrag(true);
   };
@@ -348,8 +360,8 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
   const move = (e: PointerEvent<HTMLDivElement>) => {
     if (!pointerIsDown.current) return;
     moveLogo({
-      x: startingOffset.current.x + e.clientX - pointerStart.current.x,
-      y: startingOffset.current.y + e.clientY - pointerStart.current.y,
+      x: startingPosition.current.x + e.clientX - pointerStart.current.x,
+      y: startingPosition.current.y + e.clientY - pointerStart.current.y,
     });
   };
 
@@ -357,28 +369,30 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
     if (!pointerIsDown.current) return;
     pointerIsDown.current = false;
     setDrag(false);
-    const bounds = logoBounds.current;
-    const current = logoOffset.current;
-    if (bounds && bounds.left + current.x + bounds.width / 2 <= window.innerWidth * 0.52) unlock();
+    const element = logoRef.current;
+    const current = logoPosition.current;
+    const rect = element?.getBoundingClientRect();
+    if (current && rect && current.x + rect.width / 2 <= window.innerWidth * 0.52) unlock();
   };
 
   const cancel = () => {
     pointerIsDown.current = false;
     setDrag(false);
-    moveLogo(startingOffset.current);
+    moveLogo(startingPosition.current);
   };
 
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); unlock(); return; }
     if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
-      const current = logoOffset.current;
+      const element = logoRef.current;
+      const rect = element?.getBoundingClientRect();
+      const current = logoPosition.current ?? { x: rect?.left ?? 0, y: rect?.top ?? 0 };
       const next = moveLogo({
         x: current.x + (e.key === "ArrowLeft" ? -64 : e.key === "ArrowRight" ? 64 : 0),
         y: current.y + (e.key === "ArrowUp" ? -64 : e.key === "ArrowDown" ? 64 : 0),
       });
-      const bounds = logoBounds.current;
-      if (e.key === "ArrowLeft" && bounds && bounds.left + next.x + bounds.width / 2 <= window.innerWidth * 0.52) unlock();
+      if (e.key === "ArrowLeft" && rect && next.x + rect.width / 2 <= window.innerWidth * 0.52) unlock();
     }
   };
 
@@ -386,6 +400,7 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
     <div className="nk">
       <Bubbles projects={projects} />
       <div className="nk-glow" aria-hidden="true" />
+      {statusMessage && <p className="nk-project-status" role="status">{statusMessage}</p>}
       {phase === "idle" && (
         <div
           ref={logoRef}
@@ -396,7 +411,7 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
           aria-label="Drag the Nuke logo anywhere. Move it left to sign in."
           aria-controls="nk-login-card"
           aria-expanded={false}
-          style={{ transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))` }}
+          style={position ? { left: `${position.x}px`, top: `${position.y}px`, transform: "none" } : undefined}
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}

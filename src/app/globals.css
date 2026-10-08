@@ -178,13 +178,14 @@ a.item:hover { background: var(--surface-2); }
 .nk-bubble-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .nk-bubble-link:hover::after { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; }
 .nk-glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.025), transparent 55%); animation: nk-breathe 6s ease-in-out infinite; }
-.nk-logo-drag { position: fixed; z-index: 3; top: 50%; left: clamp(110px, 76vw, calc(100vw - 110px)); width: 220px; height: 220px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .24s ease; }
+.nk-logo-drag { position: fixed; z-index: 3; top: 50%; left: clamp(110px, 76vw, calc(100vw - 110px)); width: 220px; height: 220px; display: grid; place-items: center; transform: translate(-50%, -50%); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .24s ease; }
 .nk-logo-drag img { display: block; width: 100% !important; height: auto !important; opacity: .16; filter: grayscale(1); animation: nk-logo-rotate 60s linear infinite; transition: opacity .18s ease, filter .18s ease; }
 .nk-logo-drag:hover img, .nk-logo-drag:focus-visible img { opacity: .28; }
 .nk-logo-drag.drag { cursor: grabbing; }
 .nk-logo-drag.drag img { opacity: .34; animation-play-state: paused; }
 .nk-logo-drag:focus-visible { outline: 1px solid rgba(255,255,255,.65); outline-offset: 7px; border-radius: 50%; }
 .nk-stage { position: relative; z-index: 2; width: 100%; max-width: 380px; min-width: 0; max-height: 100%; display: grid; justify-items: center; text-align: center; pointer-events: none; }
+.nk-project-status { position: fixed; z-index: 2; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); width: min(420px, calc(100% - 32px)); margin: 0; transform: translateX(-50%); color: rgba(255,255,255,.46); font-size: 12px; line-height: 1.4; text-align: center; pointer-events: none; }
 .nk-h { font-size: 22px; margin: 0; letter-spacing: -.02em; }
 .nk-card { width: 100%; max-width: 100%; max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; text-align: left; background: rgba(10,10,10,.97); border-color: #333; margin-top: 14px; scroll-margin-block: 16px; animation: nk-card .35s cubic-bezier(.2,.8,.2,1) both; pointer-events: auto; }
 .nk-card .error { color: #ededed; }

@@ -1,1 +1,2 @@
 - [Dashboard query payloads](dashboard-query-payloads.md) — exclude stored project content/files from summary-card queries to keep dashboards independent of site size.
+- [Landing logo drag coordinates](landing-logo-drag-coordinates.md) — keep the draggable logo in viewport coordinates and clamp both axes without changing its initial placement.

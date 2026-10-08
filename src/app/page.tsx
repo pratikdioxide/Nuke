@@ -10,7 +10,7 @@ export default async function Home() {
   if (!missing.length && (await isAuthed())) redirect("/dashboard");
 
   let projects: { name: string; slug: string }[] | null = null;
-  if (process.env.DATABASE_URL && !missing.length) {
+  if (process.env.DATABASE_URL) {
     try {
       projects = await listLandingProjects();
     } catch {
