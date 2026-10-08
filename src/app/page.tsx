@@ -13,8 +13,10 @@ export default async function Home() {
   if (process.env.DATABASE_URL) {
     try {
       projects = await listLandingProjects();
-    } catch {
-      // Keep the sign-in page available if the database is temporarily unreachable.
+    } catch (error) {
+      // Keep the sign-in page available if the database is temporarily unreachable,
+      // but log the cause so a broken connection is not silent.
+      console.error("[landing] could not load projects:", error);
       projects = null;
     }
   }

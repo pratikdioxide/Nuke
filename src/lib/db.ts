@@ -10,16 +10,29 @@ declare global {
   var __nukeReady: Promise<void> | undefined;
 }
 
+/** SSL only when the server can actually do it: skip for sslmode=disable, unix sockets, localhost and PGSSL=disable. */
+function sslOption(url: string): false | { rejectUnauthorized: boolean } {
+  if (process.env.PGSSL === "disable") return false;
+  // Regex instead of new URL(): socket-style URLs (postgresql://u@/db?host=/tmp) are not valid for URL().
+  const mode = /[?&]sslmode=([^&#]+)/i.exec(url)?.[1]?.toLowerCase();
+  if (mode === "disable") return false;
+  const hostParam = decodeURIComponent(/[?&]host=([^&#]+)/i.exec(url)?.[1] ?? "");
+  const host = (/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)/i.exec(url)?.[1] ?? "").toLowerCase();
+  if (hostParam.startsWith("/")) return false; // unix socket via ?host=
+  if (!host || host.startsWith("/")) return false; // no host => unix socket
+  if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) return false;
+  return { rejectUnauthorized: false };
+}
+
 function pool(): pg.Pool {
   if (!globalThis.__nukePool) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is not set.");
-    const local = /@(localhost|127\.0\.0\.1)/.test(url) || process.env.PGSSL === "disable";
     globalThis.__nukePool = new pg.Pool({
       connectionString: url,
       max: Number(process.env.PG_POOL_MAX) || 4,
       connectionTimeoutMillis: 8000,
-      ssl: local ? false : { rejectUnauthorized: false },
+      ssl: sslOption(url),
     });
   }
   return globalThis.__nukePool;

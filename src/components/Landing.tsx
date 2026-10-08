@@ -182,7 +182,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 
       const count = projects?.length ?? 0;
       const idealRadius = Math.sqrt((w * h * 0.08) / (Math.max(1, count) * Math.PI));
-      const radius = Math.max(16, Math.min(36, idealRadius, w * 0.085, h * 0.14));
+      const radius = Math.max(20, Math.min(54, idealRadius, w * 0.11, h * 0.14));
       bubbles = (projects ?? []).map(({ name, slug }) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
