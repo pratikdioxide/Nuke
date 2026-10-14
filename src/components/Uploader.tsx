@@ -15,7 +15,8 @@ export default function Uploader({ slug: fixedSlug, getSlug: createSlug, existin
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("upload");
   const [items, setItems] = useState<Item[]>([]);
-  const [html, setHtml] = useState("");
+  const [pastedFiles, setPastedFiles] = useState([{ id: 0, path: "index.html", content: "" }]);
+  const nextPastedFileId = useRef(1);
   const [repo, setRepo] = useState(git?.repo ?? "");
   const [branch, setBranch] = useState(git?.branch ?? "");
   const [dir, setDir] = useState(git?.dir ?? "");
@@ -42,8 +43,14 @@ export default function Uploader({ slug: fixedSlug, getSlug: createSlug, existin
       if (mode === "upload") {
         prepared = checkItems(items).items;
       } else if (mode === "paste") {
-        if (!html.trim()) throw new Error("Paste some HTML first.");
-        prepared = checkItems([textItem("index.html", html)]).items;
+        prepared = checkItems(pastedFiles.map((file) => textItem(file.path, file.content))).items;
+        const seen = new Set<string>();
+        for (const file of prepared) {
+          if (seen.has(file.path)) throw new Error(`More than one pasted file uses "${file.path}".`);
+          seen.add(file.path);
+        }
+        if (!seen.has("index.html")) throw new Error("Add a file named index.html at the project root.");
+        if (!prepared.find((file) => file.path === "index.html")?.data.length) throw new Error("Paste the HTML for index.html before deploying.");
       } else if (!repo.trim()) {
         throw new Error("Enter a GitHub repository.");
       }
@@ -106,9 +113,25 @@ export default function Uploader({ slug: fixedSlug, getSlug: createSlug, existin
       )}
 
       {mode === "paste" && (
-        <label className="field">index.html
-          <textarea className="textarea" rows={12} value={html} onChange={(e) => setHtml(e.target.value)} placeholder="<!doctype html>…" spellCheck={false} />
-        </label>
+        <div className="stack">
+          <p className="hint" style={{ margin: 0 }}>Add each file by its path and paste its contents. Include a root-level <code className="i">index.html</code> to deploy.</p>
+          {pastedFiles.map((file) => (
+            <div key={file.id} className="stack" style={{ gap: 10, padding: 14, border: "1px solid var(--line)", borderRadius: 8 }}>
+              <div className="row" style={{ alignItems: "end" }}>
+                <label className="field" style={{ flex: 1, minWidth: 180 }}>File name or path
+                  <input className="input mono" value={file.path} onChange={(e) => setPastedFiles((current) => current.map((item) => item.id === file.id ? { ...item, path: e.target.value } : item))} placeholder="index.html or css/site.css" />
+                </label>
+                {pastedFiles.length > 1 && (
+                  <button type="button" className="btn btn-sm btn-danger" aria-label={`Remove ${file.path || "unnamed file"}`} onClick={() => setPastedFiles((current) => current.filter((item) => item.id !== file.id))}>Remove</button>
+                )}
+              </div>
+              <label className="field">File contents
+                <textarea className="textarea" rows={file.id === 0 ? 12 : 8} value={file.content} onChange={(e) => setPastedFiles((current) => current.map((item) => item.id === file.id ? { ...item, content: e.target.value } : item))} placeholder={file.path === "index.html" ? "<!doctype html>…" : "Paste file contents…"} spellCheck={false} />
+              </label>
+            </div>
+          ))}
+          <div><button type="button" className="btn btn-sm" onClick={() => setPastedFiles((current) => [...current, { id: nextPastedFileId.current++, path: "", content: "" }])}>+ Add another file</button></div>
+        </div>
       )}
 
       {mode === "github" && (

@@ -16,6 +16,9 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAddFile, setShowAddFile] = useState(false);
+  const [newPath, setNewPath] = useState("");
+  const [fileError, setFileError] = useState("");
 
   const paths = useMemo(() => {
     const all = new Set(files.map((f) => f.path));
@@ -47,10 +50,17 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     setDeleted((d) => { const n = new Set(d); n.delete(path); return n; });
   }
   function addFile() {
-    const raw = window.prompt("New file path (e.g. about.html or css/style.css)");
-    if (!raw) return;
-    try { const p = cleanPath(raw); change(p, ""); setLoaded((l) => ({ ...l, [p]: "" })); setSelected(p); }
-    catch (e) { setError((e as Error).message); }
+    setFileError("");
+    try {
+      const p = cleanPath(newPath);
+      if (paths.includes(p)) throw new Error(`A file named "${p}" already exists.`);
+      change(p, "");
+      setLoaded((l) => ({ ...l, [p]: "" }));
+      setSelected(p);
+      setNewPath("");
+      setShowAddFile(false);
+    }
+    catch (e) { setFileError((e as Error).message); }
   }
   function remove() {
     if (!selected || !window.confirm(`Delete ${selected}?`)) return;
@@ -84,11 +94,23 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
         <div className="files">
           <div className="tree">
             <div className="row" style={{ padding: "4px 4px 10px" }}>
-              <button type="button" className="btn btn-sm" onClick={addFile}>+ New file</button>
+              <button type="button" className="btn btn-sm" onClick={() => { setShowAddFile((show) => !show); setFileError(""); }}>+ New file</button>
               <label className="btn btn-sm" style={{ cursor: "pointer" }}>Upload
                 <input type="file" multiple hidden onChange={(e) => e.target.files && addUploads(e.target.files)} />
               </label>
             </div>
+            {showAddFile && (
+              <form className="stack" style={{ padding: "0 4px 12px", gap: 8 }} onSubmit={(e) => { e.preventDefault(); addFile(); }}>
+                <label className="field">File name or path
+                  <input className="input mono" autoFocus value={newPath} onChange={(e) => { setNewPath(e.target.value); setFileError(""); }} placeholder="about.html or css/style.css" />
+                </label>
+                {fileError && <p className="error" role="alert">{fileError}</p>}
+                <div className="row">
+                  <button type="submit" className="btn btn-sm">Create file</button>
+                  <button type="button" className="btn btn-sm" onClick={() => { setShowAddFile(false); setNewPath(""); setFileError(""); }}>Cancel</button>
+                </div>
+              </form>
+            )}
             {paths.length === 0 && <p className="hint" style={{ padding: 8 }}>No files yet. Deploy something first from the Overview tab.</p>}
             {paths.map((p) => (
               <button key={p} type="button" className={`node mono ${selected === p ? "sel" : ""}`} onClick={() => open(p)}>
