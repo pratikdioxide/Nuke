@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS nuke_projects (
 );
 ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS public_env JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS project_files JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS hide_from_landing BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS active_deployment_id INT;
 ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS git_repo TEXT;
 ALTER TABLE nuke_projects ADD COLUMN IF NOT EXISTS git_branch TEXT;

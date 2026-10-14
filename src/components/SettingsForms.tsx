@@ -28,6 +28,40 @@ export function GeneralForm({ slug, name }: { slug: string; name: string }) {
   );
 }
 
+export function LandingVisibilityForm({ slug, visible: initialVisible }: { slug: string; visible: boolean }) {
+  const [visible, setVisible] = useState(initialVisible);
+  const [savedVisible, setSavedVisible] = useState(initialVisible);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+
+  return (
+    <div className="card card-pad stack">
+      <h2>Landing page</h2>
+      <label className="row" style={{ alignItems: "center", gap: 12 }}>
+        <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
+        <span>Show this project on the landing page</span>
+      </label>
+      <p className="sub" style={{ margin: 0 }}>When hidden, its bubble is removed from the landing page. The project URL remains available.</p>
+      {error && <p className="error">{error}</p>}{msg && <p className="hint">{msg}</p>}
+      <div>
+        <button className="btn btn-primary" disabled={busy || visible === savedVisible} onClick={async () => {
+          setBusy(true); setError(""); setMsg("");
+          try {
+            await api(`/api/projects/${encodeURIComponent(slug)}`, "PATCH", { hideFromLanding: !visible });
+            setSavedVisible(visible);
+            setMsg(visible ? "Project is visible on the landing page." : "Project is hidden from the landing page.");
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}>{busy ? "Saving…" : "Save visibility"}</button>
+      </div>
+    </div>
+  );
+}
+
 export function HookCard({ slug, token, origin }: { slug: string; token: string; origin: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);

@@ -4,9 +4,11 @@ import LoginForm from "@/components/LoginForm";
 import { Logo } from "@/components/ui";
 
 type LandingProject = { name: string; slug: string };
-type Bubble = { x: number; y: number; r: number; vx: number; vy: number; seed: number; name: string; slug: string };
+type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
 type Obstacle = { left: number; top: number; right: number; bottom: number; vx: number; vy: number };
 type Point = { x: number; y: number };
+
+const MAX_BUBBLE_SPEED = 44;
 
 function resolveCircleRect(bubble: Bubble, obstacle: Obstacle) {
   const nearestX = Math.max(obstacle.left, Math.min(bubble.x, obstacle.right));
@@ -40,7 +42,7 @@ function resolveCircleRect(bubble: Bubble, obstacle: Obstacle) {
 
   const relativeNormalSpeed = (bubble.vx - obstacle.vx) * nx + (bubble.vy - obstacle.vy) * ny;
   if (relativeNormalSpeed < 0) {
-    const impulse = (1 + 0.88) * relativeNormalSpeed;
+    const impulse = (1 + 0.62) * relativeNormalSpeed;
     bubble.vx -= impulse * nx;
     bubble.vy -= impulse * ny;
   }
@@ -84,7 +86,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       if (relativeSpeed >= 0) return;
       const massA = a.r * a.r;
       const massB = b.r * b.r;
-      const impulse = -(1 + 0.92) * relativeSpeed / (1 / massA + 1 / massB);
+      const impulse = -(1 + 0.68) * relativeSpeed / (1 / massA + 1 / massB);
       a.vx -= impulse * nx / massA;
       a.vy -= impulse * ny / massA;
       b.vx += impulse * nx / massB;
@@ -101,7 +103,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.textBaseline = "middle";
       ctx.fillStyle = "rgba(255,255,255,.9)";
       ctx.save();
-      traceBubble(bubble.x, bubble.y, bubble.r * 0.84, bubble.seed);
+      traceBubble(bubble.x, bubble.y, bubble.r * 0.84);
       ctx.clip();
 
       const lines: string[] = [];
@@ -131,18 +133,9 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.restore();
     };
 
-    const traceBubble = (x: number, y: number, radius: number, seed: number) => {
+    const traceBubble = (x: number, y: number, radius: number) => {
       ctx.beginPath();
-      const points = 48;
-      for (let i = 0; i < points; i++) {
-        const angle = (i / points) * Math.PI * 2;
-        const wobble = 1 + Math.sin(angle * 3 + seed) * 0.025 + Math.cos(angle * 5 - seed) * 0.018;
-        const px = x + Math.cos(angle) * radius * wobble;
-        const py = y + Math.sin(angle) * radius * wobble;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
     };
 
     const draw = () => {
@@ -166,15 +159,14 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         ctx.shadowColor = "rgba(0,0,0,.28)";
         ctx.shadowBlur = 16;
         ctx.shadowOffsetY = 8;
-        ctx.beginPath();
-        traceBubble(bubble.x, bubble.y, bubble.r, bubble.seed);
+        traceBubble(bubble.x, bubble.y, bubble.r);
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.strokeStyle = "rgba(255,255,255,.58)";
         ctx.stroke();
         ctx.restore();
-        traceBubble(bubble.x, bubble.y, bubble.r * 0.76, bubble.seed);
+        traceBubble(bubble.x, bubble.y, bubble.r * 0.76);
         ctx.setLineDash([3, 3]);
         ctx.lineWidth = 0.8;
         ctx.strokeStyle = "rgba(255,255,255,.34)";
@@ -194,7 +186,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       previousObstacleCenters.clear();
 
       const radius = (w <= 480 ? 62 : w <= 640 ? 68 : 82) / 2;
-      bubbles = (projects ?? []).map(({ name, slug }, index) => {
+      bubbles = (projects ?? []).map(({ name, slug }) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
         for (let attempt = 0; attempt < 70; attempt++) {
@@ -206,8 +198,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
           if (spaced) break;
         }
         const angle = Math.random() * Math.PI * 2;
-        const speed = 24 + Math.random() * 42;
-        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, seed: index * 1.37, name, slug };
+        const speed = 16 + Math.random() * 14;
+        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name, slug };
       });
       draw();
     };
@@ -237,7 +229,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         const center = { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 };
         const last = previousObstacleCenters.get(id);
         previousObstacleCenters.set(id, center);
-        const limitSpeed = (speed: number) => Math.max(-900, Math.min(900, speed));
+        const limitSpeed = (speed: number) => Math.max(-180, Math.min(180, speed));
         return {
           ...bounds,
           vx: last && elapsed > 0 ? limitSpeed((center.x - last.x) / elapsed) : 0,
@@ -262,6 +254,14 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       }
       for (let i = 0; i < bubbles.length; i++) {
         for (let j = i + 1; j < bubbles.length; j++) resolveCollision(bubbles[i], bubbles[j]);
+      }
+      for (const bubble of bubbles) {
+        const speed = Math.hypot(bubble.vx, bubble.vy);
+        if (speed > MAX_BUBBLE_SPEED) {
+          const scale = MAX_BUBBLE_SPEED / speed;
+          bubble.vx *= scale;
+          bubble.vy *= scale;
+        }
       }
       draw();
     };

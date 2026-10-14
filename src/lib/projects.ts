@@ -3,6 +3,7 @@ import type { LogLine } from "./shared";
 
 export type Project = {
   id: number; name: string; slug: string; public_env: Record<string, string>;
+  hide_from_landing: boolean;
   active_deployment_id: number | null; git_repo: string | null; git_branch: string | null;
   git_dir: string | null; hook_token: string; created_at: string; updated_at: string;
 };
@@ -42,7 +43,7 @@ export async function listProjects(): Promise<ProjectCard[]> {
 
 export async function listLandingProjects(): Promise<{ name: string; slug: string }[]> {
   return q<{ name: string; slug: string }>(
-    "SELECT name, slug FROM nuke_projects WHERE active_deployment_id IS NOT NULL ORDER BY id",
+    "SELECT name, slug FROM nuke_projects WHERE active_deployment_id IS NOT NULL AND NOT hide_from_landing ORDER BY id",
   );
 }
 
