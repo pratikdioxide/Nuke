@@ -4,7 +4,7 @@ import LoginForm from "@/components/LoginForm";
 import { Logo } from "@/components/ui";
 
 type LandingProject = { name: string; slug: string };
-type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
+type Bubble = { x: number; y: number; r: number; vx: number; vy: number; seed: number; name: string; slug: string };
 type Obstacle = { left: number; top: number; right: number; bottom: number; vx: number; vy: number };
 type Point = { x: number; y: number };
 
@@ -92,8 +92,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
     };
 
     const drawTitle = (bubble: Bubble) => {
-      const fontSize = Math.max(9, Math.min(15, bubble.r * 0.3));
-      const maxWidth = bubble.r * 1.5;
+      const fontSize = Math.max(9, Math.min(11, bubble.r * 0.27));
+      const maxWidth = bubble.r * 1.32;
       const lineHeight = fontSize * 1.16;
       const maxLines = Math.max(2, Math.floor((bubble.r * 1.15) / lineHeight));
       ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
@@ -101,8 +101,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.textBaseline = "middle";
       ctx.fillStyle = "rgba(255,255,255,.9)";
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(bubble.x, bubble.y, bubble.r * 0.84, 0, Math.PI * 2);
+      traceBubble(bubble.x, bubble.y, bubble.r * 0.84, bubble.seed);
       ctx.clip();
 
       const lines: string[] = [];
@@ -132,6 +131,20 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.restore();
     };
 
+    const traceBubble = (x: number, y: number, radius: number, seed: number) => {
+      ctx.beginPath();
+      const points = 48;
+      for (let i = 0; i < points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        const wobble = 1 + Math.sin(angle * 3 + seed) * 0.025 + Math.cos(angle * 5 - seed) * 0.018;
+        const px = x + Math.cos(angle) * radius * wobble;
+        const py = y + Math.sin(angle) * radius * wobble;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    };
+
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
       bubbles.forEach((bubble, index) => {
@@ -139,32 +152,32 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         if (link) {
           link.style.left = `${bubble.x}px`;
           link.style.top = `${bubble.y}px`;
-          link.style.width = `${bubble.r * 2.16}px`;
-          link.style.height = `${bubble.r * 2.16}px`;
+           link.style.width = `${bubble.r * 2}px`;
+           link.style.height = `${bubble.r * 2}px`;
         }
-        const gradient = ctx.createRadialGradient(
-          bubble.x - bubble.r * 0.35, bubble.y - bubble.r * 0.4, bubble.r * 0.06,
-          bubble.x, bubble.y, bubble.r,
+        const gradient = ctx.createLinearGradient(
+          bubble.x - bubble.r, bubble.y - bubble.r,
+          bubble.x + bubble.r, bubble.y + bubble.r,
         );
-        gradient.addColorStop(0, "rgba(255,255,255,.1)");
-        gradient.addColorStop(1, "rgba(255,255,255,.025)");
+        gradient.addColorStop(0, "rgba(245,169,200,.2)");
+        gradient.addColorStop(0.48, "rgba(245,169,200,.055)");
+        gradient.addColorStop(1, "rgba(23,23,26,.96)");
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,.28)";
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 8;
         ctx.beginPath();
-        ctx.arc(bubble.x, bubble.y, bubble.r * 1.08, 0, Math.PI * 2);
-        ctx.lineWidth = 0.8;
-        ctx.strokeStyle = "rgba(255,255,255,.17)";
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+        traceBubble(bubble.x, bubble.y, bubble.r, bubble.seed);
         ctx.fillStyle = gradient;
         ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,.58)";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(245,169,200,.58)";
         ctx.stroke();
-        ctx.beginPath();
-        ctx.setLineDash([1.2, 2.8]);
-        ctx.arc(bubble.x, bubble.y, bubble.r * 0.76, 0, Math.PI * 2);
+        ctx.restore();
+        traceBubble(bubble.x, bubble.y, bubble.r * 0.76, bubble.seed);
+        ctx.setLineDash([3, 3]);
         ctx.lineWidth = 0.8;
-        ctx.strokeStyle = "rgba(255,255,255,.32)";
+        ctx.strokeStyle = "rgba(245,169,200,.38)";
         ctx.stroke();
         ctx.setLineDash([]);
         drawTitle(bubble);
@@ -180,10 +193,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       previousObstacleCenters.clear();
 
-      const count = projects?.length ?? 0;
-      const idealRadius = Math.sqrt((w * h * 0.08) / (Math.max(1, count) * Math.PI));
-      const radius = Math.max(20, Math.min(54, idealRadius, w * 0.11, h * 0.14));
-      bubbles = (projects ?? []).map(({ name, slug }) => {
+      const radius = (w <= 480 ? 62 : w <= 640 ? 68 : 82) / 2;
+      bubbles = (projects ?? []).map(({ name, slug }, index) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
         for (let attempt = 0; attempt < 70; attempt++) {
@@ -196,7 +207,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         }
         const angle = Math.random() * Math.PI * 2;
         const speed = 24 + Math.random() * 42;
-        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name, slug };
+        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, seed: index * 1.37, name, slug };
       });
       draw();
     };
@@ -309,9 +320,10 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
       return next;
     }
     const rect = element.getBoundingClientRect();
+    const margin = Math.min(60, window.innerWidth / 2, window.innerHeight / 2);
     const bounded = {
-      x: Math.max(0, Math.min(Math.max(0, window.innerWidth - rect.width), next.x)),
-      y: Math.max(0, Math.min(Math.max(0, window.innerHeight - rect.height), next.y)),
+      x: Math.max(margin - rect.width / 2, Math.min(window.innerWidth - margin - rect.width / 2, next.x)),
+      y: Math.max(margin - rect.height / 2, Math.min(window.innerHeight - margin - rect.height / 2, next.y)),
     };
     logoPosition.current = bounded;
     setPosition(bounded);
@@ -325,7 +337,9 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
   };
 
   const back = () => {
-    moveLogo(initialPosition.current ?? { x: 0, y: 0 });
+    const initial = initialPosition.current ?? { x: 0, y: 0 };
+    logoPosition.current = initial;
+    setPosition(initial);
     setPhase("idle");
   };
 
@@ -334,9 +348,14 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
       const element = logoRef.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      const current = logoPosition.current ?? { x: rect.left, y: rect.top };
-      if (!initialPosition.current) initialPosition.current = { ...current };
-      moveLogo(current);
+      if (!initialPosition.current) {
+        const initial = { x: rect.left, y: rect.top };
+        initialPosition.current = initial;
+        logoPosition.current = initial;
+        setPosition(initial);
+        return;
+      }
+      moveLogo(logoPosition.current ?? { x: rect.left, y: rect.top });
     };
     measure();
     window.addEventListener("resize", measure);
@@ -378,7 +397,8 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
   const cancel = () => {
     pointerIsDown.current = false;
     setDrag(false);
-    moveLogo(startingPosition.current);
+    logoPosition.current = startingPosition.current;
+    setPosition(startingPosition.current);
   };
 
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
