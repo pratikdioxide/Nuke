@@ -159,8 +159,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
           bubble.x - bubble.r, bubble.y - bubble.r,
           bubble.x + bubble.r, bubble.y + bubble.r,
         );
-        gradient.addColorStop(0, "rgba(245,169,200,.2)");
-        gradient.addColorStop(0.48, "rgba(245,169,200,.055)");
+        gradient.addColorStop(0, "rgba(255,255,255,.18)");
+        gradient.addColorStop(0.48, "rgba(255,255,255,.045)");
         gradient.addColorStop(1, "rgba(23,23,26,.96)");
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,.28)";
@@ -171,13 +171,13 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = "rgba(245,169,200,.58)";
+        ctx.strokeStyle = "rgba(255,255,255,.58)";
         ctx.stroke();
         ctx.restore();
         traceBubble(bubble.x, bubble.y, bubble.r * 0.76, bubble.seed);
         ctx.setLineDash([3, 3]);
         ctx.lineWidth = 0.8;
-        ctx.strokeStyle = "rgba(245,169,200,.38)";
+        ctx.strokeStyle = "rgba(255,255,255,.34)";
         ctx.stroke();
         ctx.setLineDash([]);
         drawTitle(bubble);
