@@ -186,8 +186,8 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = cv.clientWidth;
-      h = cv.clientHeight;
+      w = window.innerWidth;
+      h = window.innerHeight;
       cv.width = Math.round(w * dpr);
       cv.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -349,7 +349,11 @@ export default function Landing({ missing, projects }: { missing: string[]; proj
       if (!element) return;
       const rect = element.getBoundingClientRect();
       if (!initialPosition.current) {
-        const initial = { x: rect.left, y: rect.top };
+        const right = Number.parseFloat(window.getComputedStyle(element).right);
+        const initial = {
+          x: Math.max(0, window.innerWidth - rect.width - (Number.isFinite(right) ? right : 0)),
+          y: Math.max(0, (window.innerHeight - rect.height) / 2),
+        };
         initialPosition.current = initial;
         logoPosition.current = initial;
         setPosition(initial);
