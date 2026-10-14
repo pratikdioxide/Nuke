@@ -1,1 +1,0 @@
-- [Workflow startup](workflow-startup.md) — use a direct server command when package-manager bootstrap prevents the root app from opening its port.
