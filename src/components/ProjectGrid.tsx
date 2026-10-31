@@ -119,10 +119,14 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
               <h3>{p.name}</h3>
               <div className="url mono">{host}/{p.slug}</div>
               <div className="meta">
-                <StatusBadge status={p.latest_status} />
-                <span>{timeAgo(p.latest_at)}</span>
-                {p.file_count != null && <span>{p.file_count} files · {formatBytes(Number(p.total_bytes))}</span>}
-                {p.git_repo && <span className="mono">{p.git_repo}</span>}
+                <div className="meta-row">
+                  {p.file_count != null && <span>{p.file_count} files · {formatBytes(Number(p.total_bytes))}</span>}
+                  <span style={{ marginLeft: "auto" }}>{timeAgo(p.latest_at)}</span>
+                </div>
+                <div className="meta-row meta-row-last">
+                  <StatusBadge status={p.latest_status} />
+                  {p.git_repo && <span className="mono">{p.git_repo}</span>}
+                </div>
               </div>
             </Link>
               {p.version !== null && (
