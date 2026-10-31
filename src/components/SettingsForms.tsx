@@ -99,3 +99,45 @@ export function DangerCard({ slug }: { slug: string }) {
     </div>
   );
 }
+
+export function PasswordForm({ slug, enabled: initialEnabled }: { slug: string; enabled: boolean }) {
+  const [enabled, setEnabled] = useState(initialEnabled);
+  const [savedEnabled, setSavedEnabled] = useState(initialEnabled);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const needsPassword = enabled && !savedEnabled;
+  const changed = enabled !== savedEnabled || (enabled && password.length > 0);
+
+  return (
+    <div className="card card-pad stack">
+      <h2>Password protection</h2>
+      <label className="row" style={{ alignItems: "center", gap: 12 }}>
+        <input type="checkbox" checked={enabled} onChange={(e) => { setEnabled(e.target.checked); setMsg(""); setError(""); }} />
+        <span>Ask for a password before this site opens</span>
+      </label>
+      {enabled && (
+        <label className="field">{savedEnabled ? "New password (leave empty to keep the current one)" : "Password"}
+          <input className="input" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" />
+        </label>
+      )}
+      <p className="sub" style={{ margin: 0 }}>Off by default. Visitors enter the password once and stay unlocked for 30 days. This also protects the project&apos;s api/ functions, so outside services cannot call them without it.</p>
+      {error && <p className="error">{error}</p>}{msg && <p className="hint">{msg}</p>}
+      <div>
+        <button className="btn btn-primary" disabled={busy || !changed || (needsPassword && password.length < 4)} onClick={async () => {
+          setBusy(true); setError(""); setMsg("");
+          try {
+            await api(`/api/projects/${encodeURIComponent(slug)}`, "PATCH", { sitePassword: enabled ? (password || undefined) : null });
+            setSavedEnabled(enabled); setPassword("");
+            setMsg(enabled ? "Password saved. The site is protected." : "Password removed. The site is public.");
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}>{busy ? "Saving…" : "Save"}</button>
+      </div>
+    </div>
+  );
+}

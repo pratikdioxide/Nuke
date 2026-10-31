@@ -77,6 +77,13 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .project .meta-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .project .meta-row-last { min-height: 28px; padding-right: 38px; justify-content: flex-start; flex-wrap: wrap; }
 .visit-btn { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); transition: color .16s ease, background-color .16s ease, border-color .16s ease, transform .16s ease; }
+.pin-btn { position: absolute; top: 26px; right: 26px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: #d4d4d4; background: rgba(10,10,10,.72); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(6px); cursor: pointer; opacity: 0; transition: opacity .16s ease, color .16s ease, border-color .16s ease, background-color .16s ease; }
+.project:hover .pin-btn, .pin-btn:focus-visible, .pin-btn.on { opacity: 1; }
+.pin-btn:hover { color: #fbbf24; border-color: #fbbf24; }
+.pin-btn.on { color: #fbbf24; border-color: rgba(251,191,36,.55); }
+@media (hover: none) { .pin-btn { opacity: 1; } }
+@media (max-width: 639px) { .pin-btn { top: 18px; right: 18px; width: 26px; height: 26px; } }
+.lock-icon { flex: none; color: var(--muted); }
 .visit-btn:hover { color: #000; background: #fff; border-color: #fff; transform: translate(1px, -1px); }
 @media (max-width: 640px) { .visit-btn { right: 8px; bottom: 8px; width: 26px; height: 26px; } .project .meta-row-last { padding-right: 32px; } }
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }

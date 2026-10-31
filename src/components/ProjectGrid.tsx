@@ -1,15 +1,18 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatBytes, siteAddress, timeAgo } from "@/lib/shared";
 import { StatusBadge } from "./ui";
 import SiteThumbnail from "./SiteThumbnail";
+import { api } from "@/lib/client/upload";
 import { captureThumbnail, markThumbFailed, needsThumbnail } from "@/lib/client/shot";
 
-type P = { name: string; slug: string; hide_from_landing?: boolean; latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null; git_repo: string | null; version: number | null; thumb_deployment: number | null; thumb_at: number | null };
+type P = { name: string; slug: string; hide_from_landing?: boolean; pinned?: boolean; locked?: boolean; latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null; git_repo: string | null; version: number | null; thumb_deployment: number | null; thumb_at: number | null };
 
 /** `projects` is the first page (12) from the server; the rest is fetched 12 at a time while the user scrolls. */
 export default function ProjectGrid({ projects, total: initialTotal, host }: { projects: P[]; total: number; host: string }) {
+  const router = useRouter();
   const [items, setItems] = useState<P[]>(projects);
   const [total, setTotal] = useState(initialTotal);
   const [term, setTerm] = useState("");
@@ -59,6 +62,15 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
     } finally {
       if (id === reqId.current) setLoading(false);
     }
+  }
+
+  // Pin or unpin: the card moves at once, then the server confirms (and puts things back if it failed).
+  async function togglePin(p: P) {
+    const pinned = !p.pinned;
+    setItems((prev) => prev.map((x) => (x.slug === p.slug ? { ...x, pinned } : x)).sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned)));
+    try { await api(`/api/projects/${encodeURIComponent(p.slug)}`, "PATCH", { pinned }); }
+    catch { /* the refresh below restores the real order */ }
+    router.refresh();
   }
 
   // searching asks the database (the browser only holds the cards loaded so far)
@@ -116,7 +128,10 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
             <div key={p.slug} className={`card project${p.hide_from_landing ? " project-private" : ""}`}>
               <Link href={`/dashboard/${p.slug}`} className="project-link">
               <SiteThumbnail slug={p.slug} thumbAt={p.thumb_at} deployed={p.version !== null} capturing={capturing === p.slug} failed={failed.has(p.slug)} />
-              <h3>{p.name}</h3>
+              <h3>
+                {p.name}
+                {p.locked && <svg className="lock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Password protected"><title>Password protected</title><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>}
+              </h3>
               <div className="url mono">{siteAddress(host, p.slug).label}</div>
               <div className="meta">
                 <div className="meta-row">
@@ -129,6 +144,9 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
                 </div>
               </div>
             </Link>
+              <button type="button" className={`pin-btn${p.pinned ? " on" : ""}`} onClick={() => togglePin(p)} aria-pressed={!!p.pinned} aria-label={p.pinned ? `Unpin ${p.name}` : `Pin ${p.name}`} title={p.pinned ? "Unpin" : "Pin to top"}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={p.pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" /></svg>
+              </button>
               {p.version !== null && (
                 <a href={siteAddress(host, p.slug).href} target="_blank" rel="noopener noreferrer" className="visit-btn" aria-label={`Open ${p.name} website in a new tab`} title="Open website in new tab">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>

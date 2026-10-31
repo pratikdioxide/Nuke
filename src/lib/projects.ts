@@ -4,6 +4,9 @@ import type { LogLine } from "./shared";
 export type Project = {
   id: number; name: string; slug: string; public_env: Record<string, string>;
   hide_from_landing: boolean;
+  /** scrypt hash of the site password; null = the site is public */
+  site_password: string | null;
+  pinned: boolean;
   active_deployment_id: number | null; git_repo: string | null; git_branch: string | null;
   git_dir: string | null; hook_token: string; created_at: string; updated_at: string;
 };
@@ -11,6 +14,9 @@ export type ProjectCard = {
   name: string; slug: string; git_repo: string | null;
   /** true = hidden from the public landing page bubbles (only visible after login) */
   hide_from_landing: boolean;
+  pinned: boolean;
+  /** the site asks for a password */
+  locked: boolean;
   latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null;
   /** The live deployment id (null = nothing live). The screenshot is "current" when thumb_deployment equals it. */
   version: number | null;
@@ -40,7 +46,7 @@ export async function listProjects(opts: { offset?: number; term?: string } = {}
   const { rows, total } = await tx(async (client) => {
     await client.query("SET LOCAL statement_timeout = '8s'");
     const result = await client.query(`
-      SELECT p.name, p.slug, p.git_repo, p.hide_from_landing,
+      SELECT p.name, p.slug, p.git_repo, p.hide_from_landing, p.pinned, (p.site_password IS NOT NULL) AS locked,
         l.status AS latest_status, COALESCE(l.created_at, p.created_at) AS latest_at,
         a.file_count, a.total_bytes,
         p.active_deployment_id AS version, t.deployment_id AS thumb_deployment, t.updated_at AS thumb_at
@@ -49,7 +55,7 @@ export async function listProjects(opts: { offset?: number; term?: string } = {}
       LEFT JOIN LATERAL (SELECT status, created_at FROM nuke_deployments WHERE project_id=p.id ORDER BY number DESC LIMIT 1) l ON true
       LEFT JOIN nuke_deployments a ON a.id = p.active_deployment_id
       WHERE ($1::text IS NULL OR p.name ILIKE $1 OR p.slug ILIKE $1)
-      ORDER BY COALESCE(l.created_at, p.created_at) DESC, p.id DESC
+      ORDER BY p.pinned DESC, COALESCE(l.created_at, p.created_at) DESC, p.id DESC
       LIMIT $2 OFFSET $3`, [like, PROJECT_PAGE, offset]);
     const count = await client.query(
       "SELECT COUNT(*)::int AS n FROM nuke_projects p WHERE ($1::text IS NULL OR p.name ILIKE $1 OR p.slug ILIKE $1)", [like]);

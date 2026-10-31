@@ -2,6 +2,7 @@ import { guard } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { getProject } from "@/lib/projects";
 import { slugError } from "@/lib/shared";
+import { MIN_SITE_PASSWORD, hashSitePassword } from "@/lib/site-password";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -11,6 +12,19 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const project = await getProject((await params).slug);
   if (!project) return Response.json({ error: "Project not found." }, { status: 404 });
   const body = await req.json().catch(() => ({}));
+
+  // Pin and password changes are saved on their own (they do not touch the name or URL).
+  if (typeof body.pinned === "boolean") await q("UPDATE nuke_projects SET pinned=$1 WHERE id=$2", [body.pinned, project.id]);
+  if (body.sitePassword === null) {
+    await q("UPDATE nuke_projects SET site_password=NULL WHERE id=$1", [project.id]);
+  } else if (body.sitePassword !== undefined) {
+    if (typeof body.sitePassword !== "string" || body.sitePassword.length < MIN_SITE_PASSWORD || body.sitePassword.length > 200) {
+      return Response.json({ error: `Use a password of ${MIN_SITE_PASSWORD}-200 characters.` }, { status: 400 });
+    }
+    await q("UPDATE nuke_projects SET site_password=$1 WHERE id=$2", [hashSitePassword(body.sitePassword), project.id]);
+  }
+  if (!("name" in body) && !("slug" in body) && !("hideFromLanding" in body)) return Response.json({ ok: true });
+
   const name = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 80) : project.name;
   const slug = typeof body.slug === "string" && body.slug.trim() ? body.slug.trim().toLowerCase() : project.slug;
   const hideFromLanding = typeof body.hideFromLanding === "boolean" ? body.hideFromLanding : null;

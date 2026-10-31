@@ -4,6 +4,7 @@ import { missingEnv } from "@/lib/auth";
 import { findFunction, runFunction } from "@/lib/functions";
 import { RequestBodyError, readBytesLimited } from "@/lib/request-body";
 import { SUBDOMAIN_ROOT, slugError } from "@/lib/shared";
+import { checkSitePassword, clearAttempts, createUnlockToken, tooManyAttempts, unlockCookieName, verifyUnlockToken } from "@/lib/site-password";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,18 @@ function page(status: number, title: string, text: string) {
 <body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#000;color:#ededed;font:15px system-ui,sans-serif;text-align:center;padding:24px">
 <div>${LOGO}<div style="font:600 56px/1.1 system-ui;margin:14px 0 10px">${status}</div><div style="color:#a1a1a1;max-width:34ch">${text}</div></div>`;
   return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+}
+
+function lockPage(error?: string, status = 401) {
+  const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Password required</title>
+<body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#000;color:#ededed;font:15px system-ui,sans-serif;padding:24px">
+<form method="post" action="?__unlock=1" style="width:100%;max-width:320px;text-align:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a1a1a1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+<div style="font:600 20px/1.2 system-ui;margin:16px 0 6px">This site is protected</div>
+<div style="color:#a1a1a1;margin-bottom:18px">Enter the password to continue.</div>
+<input name="password" type="password" autocomplete="current-password" autofocus required placeholder="Password" style="box-sizing:border-box;width:100%;height:42px;padding:0 12px;border-radius:8px;border:1px solid #333;background:#0a0a0a;color:#fff;font:inherit;outline:none">
+${error ? `<div style="color:#f87171;font-size:13px;margin-top:10px">${error}</div>` : ""}
+<button type="submit" style="margin-top:12px;width:100%;height:42px;border-radius:8px;border:0;background:#fff;color:#000;font:600 14px system-ui;cursor:pointer">Unlock</button></form>`;
+  return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" } });
 }
 
 // Makes root-style calls such as fetch("/api/tracker") reach this project's functions at /<slug>/api/tracker.
@@ -65,12 +78,38 @@ async function serve(req: NextRequest, ctx: Ctx, head: boolean) {
     return page(404, "Not found", "This page does not exist.");
   }
 
-  const proj = (await q<{ id: number; did: number | null; env: Record<string, string> | null; has_api: boolean }>(
-    `SELECT p.id, p.active_deployment_id AS did, d.env,
+  const proj = (await q<{ id: number; did: number | null; env: Record<string, string> | null; has_api: boolean; pw: string | null }>(
+    `SELECT p.id, p.active_deployment_id AS did, d.env, p.site_password AS pw,
             EXISTS (SELECT 1 FROM nuke_files f WHERE f.deployment_id = p.active_deployment_id AND f.path LIKE 'api/%' AND f.path ~ '\\.(js|mjs|cjs|ts)$') AS has_api
      FROM nuke_projects p LEFT JOIN nuke_deployments d ON d.id = p.active_deployment_id WHERE p.slug=$1`, [slug]))[0];
   if (!proj) return page(404, "Not found", "No project lives at this address.");
   if (!proj.did) return page(404, "Not deployed", "This project has no live deployment yet.");
+
+  // Password protection (off unless the owner turned it on in Settings).
+  const cookieName = unlockCookieName(slug);
+  const unlocked = !proj.pw || verifyUnlockToken(slug, proj.pw, req.cookies.get(cookieName)?.value);
+  if (req.method === "POST" && req.nextUrl.searchParams.has("__unlock")) {
+    if (!proj.pw) return new Response(null, { status: 303, headers: { Location: pathname, "Cache-Control": "no-store" } });
+    const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
+    const key = `${ip}:${slug}`;
+    if (tooManyAttempts(key)) return lockPage("Too many attempts. Try again in a few minutes.", 429);
+    const form = await req.formData().catch(() => null);
+    const given = form?.get("password");
+    if (typeof given !== "string" || given.length > 200 || !checkSitePassword(given, proj.pw)) return lockPage("Wrong password.");
+    clearAttempts(key);
+    const { token, maxAge } = createUnlockToken(slug, proj.pw);
+    // On <slug>.<root> the browser sees the site at "/", on <root>/<slug> it lives under /<slug>.
+    const cookiePath = req.headers.get("x-nuke-via") === "worker" ? "/" : `/${slug}`;
+    const secure = req.nextUrl.protocol === "https:" ? "; Secure" : "";
+    return new Response(null, { status: 303, headers: {
+      Location: pathname, "Cache-Control": "no-store",
+      "Set-Cookie": `${cookieName}=${token}; Path=${cookiePath}; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`,
+    } });
+  }
+  if (!unlocked) {
+    if (rel === "api" || rel.startsWith("api/")) return Response.json({ error: "This site is password protected." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    return lockPage();
+  }
 
   // Everything under api/ is private server code: it runs, it is never downloaded.
   if (rel === "api" || rel.startsWith("api/")) {
@@ -118,7 +157,10 @@ async function serve(req: NextRequest, ctx: Ctx, head: boolean) {
     "Cache-Control": "public, max-age=0, must-revalidate",
     ETag: etag,
     "X-Content-Type-Options": "nosniff",
+    // Tells the Cloudflare Worker it may keep this response at the edge for 60 s. Never for protected sites.
+    "X-Nuke-Edge": "60",
   };
+  if (proj.pw) { headers["Cache-Control"] = "private, no-store"; delete headers["X-Nuke-Edge"]; }
   if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers });
 
   const blob = (await q<{ data: Buffer }>("SELECT data FROM nuke_blobs WHERE hash=$1", [file.hash]))[0];
@@ -137,7 +179,7 @@ export const HEAD = (req: NextRequest, ctx: Ctx) => handle(req, ctx, true);
 // Functions accept every method; static files do not.
 const fnOnly = async (req: NextRequest, ctx: Ctx) => {
   const { path } = await ctx.params;
-  if (path?.[0] !== "api") return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
+  if (path?.[0] !== "api" && !req.nextUrl.searchParams.has("__unlock")) return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
   return handle(req, ctx);
 };
 export const POST = fnOnly;
