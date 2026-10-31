@@ -56,7 +56,17 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .card-pad { padding: 20px; }
 .card-head { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .card-head h2 { margin: 0; }
-.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1023px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .grid .project { padding: 10px; }
+  .grid .project .thumb { margin-bottom: 10px; }
+  .grid .project h3 { font-size: 14px; }
+  .grid .project .url { font-size: 11px; }
+  .grid .project .meta { gap: 4px 10px; font-size: 11px; margin-top: 10px; }
+  .grid .project .meta .mono { display: none; }
+}
 .project { display: block; padding: 18px; transition: border-color .16s ease, background-color .16s ease, transform .16s ease; }
 .project:hover { border-color: #4a4a4a; background: var(--surface-2); transform: translateY(-2px); }
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
@@ -152,7 +162,6 @@ a.item:hover { background: var(--surface-2); }
 @media (max-width: 767px) {
   .container { padding: 20px 14px 60px; }
   .topbar-in { padding: 0 14px; }
-  .grid { grid-template-columns: minmax(0, 1fr); }
   h1 { font-size: 23px; }
   .project-workspace { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .project-sidebar { position: static; gap: 10px; }
