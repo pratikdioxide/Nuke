@@ -9,6 +9,8 @@ export type Project = {
 };
 export type ProjectCard = {
   name: string; slug: string; git_repo: string | null;
+  /** true = hidden from the public landing page bubbles (only visible after login) */
+  hide_from_landing: boolean;
   latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null;
   /** The live deployment id (null = nothing live). The screenshot is "current" when thumb_deployment equals it. */
   version: number | null;
@@ -38,7 +40,7 @@ export async function listProjects(opts: { offset?: number; term?: string } = {}
   const { rows, total } = await tx(async (client) => {
     await client.query("SET LOCAL statement_timeout = '8s'");
     const result = await client.query(`
-      SELECT p.name, p.slug, p.git_repo,
+      SELECT p.name, p.slug, p.git_repo, p.hide_from_landing,
         l.status AS latest_status, COALESCE(l.created_at, p.created_at) AS latest_at,
         a.file_count, a.total_bytes,
         p.active_deployment_id AS version, t.deployment_id AS thumb_deployment, t.updated_at AS thumb_at

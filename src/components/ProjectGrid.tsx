@@ -6,7 +6,7 @@ import { StatusBadge } from "./ui";
 import SiteThumbnail from "./SiteThumbnail";
 import { captureThumbnail, markThumbFailed, needsThumbnail } from "@/lib/client/shot";
 
-type P = { name: string; slug: string; latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null; git_repo: string | null; version: number | null; thumb_deployment: number | null; thumb_at: number | null };
+type P = { name: string; slug: string; hide_from_landing?: boolean; latest_status: string | null; latest_at: string | null; file_count: number | null; total_bytes: number | null; git_repo: string | null; version: number | null; thumb_deployment: number | null; thumb_at: number | null };
 
 /** `projects` is the first page (12) from the server; the rest is fetched 12 at a time while the user scrolls. */
 export default function ProjectGrid({ projects, total: initialTotal, host }: { projects: P[]; total: number; host: string }) {
@@ -113,9 +113,13 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
       ) : (
         <div className="grid">
           {merged.map((p) => (
-            <Link key={p.slug} href={`/dashboard/${p.slug}`} className="card project">
+            <div key={p.slug} className={`card project${p.hide_from_landing ? " project-private" : ""}`}>
+              <Link href={`/dashboard/${p.slug}`} className="project-link">
               <SiteThumbnail slug={p.slug} thumbAt={p.thumb_at} deployed={p.version !== null} capturing={capturing === p.slug} failed={failed.has(p.slug)} />
-              <h3>{p.name}</h3>
+              <h3>
+                {p.name}
+                {p.hide_from_landing && <span className="private-badge" title="Hidden from the landing page. Only visible after login.">🔒 Private</span>}
+              </h3>
               <div className="url mono">{host}/{p.slug}</div>
               <div className="meta">
                 <StatusBadge status={p.latest_status} />
@@ -124,6 +128,12 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
                 {p.git_repo && <span className="mono">{p.git_repo}</span>}
               </div>
             </Link>
+              {p.version !== null && (
+                <a href={`/${encodeURIComponent(p.slug)}`} target="_blank" rel="noopener noreferrer" className="visit-btn" aria-label={`Open ${p.name} website in a new tab`} title="Open website in new tab">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
+                </a>
+              )}
+            </div>
           ))}
         </div>
       )}
