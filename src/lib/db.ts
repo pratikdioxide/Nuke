@@ -125,6 +125,14 @@ CREATE TABLE IF NOT EXISTS nuke_fn_logs (
 );
 CREATE INDEX IF NOT EXISTS nuke_fn_logs_project_idx ON nuke_fn_logs(project_id, id DESC);
 CREATE TABLE IF NOT EXISTS nuke_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+-- the saved screenshot of each project (one row per project, kept apart so project list queries stay small)
+CREATE TABLE IF NOT EXISTS nuke_thumbs (
+  project_id INT PRIMARY KEY REFERENCES nuke_projects(id) ON DELETE CASCADE,
+  deployment_id INT NOT NULL,
+  content_type TEXT NOT NULL DEFAULT 'image/jpeg',
+  data BYTEA NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 /** Old single-table projects (content + project_files) become deployment #1. */

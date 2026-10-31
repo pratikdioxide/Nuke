@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Uploader from "@/components/Uploader";
+import ProjectShot from "@/components/ProjectShot";
 import { RedeployButton } from "@/components/ProjectActions";
 import { StatusBadge } from "@/components/ui";
-import { getProject, listDeployments } from "@/lib/projects";
+import { getProject, getThumbMeta, listDeployments } from "@/lib/projects";
 import { formatBytes, timeAgo } from "@/lib/shared";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function Overview({ params }: { params: Promise<{ slug: string }> }) {
   const project = await getProject((await params).slug);
   if (!project) notFound();
-  const deployments = await listDeployments(project.id);
+  const [deployments, thumb] = await Promise.all([listDeployments(project.id), getThumbMeta(project.id)]);
   const active = deployments.find((d) => d.id === project.active_deployment_id);
   const latest = deployments[0];
   return (
@@ -36,6 +37,7 @@ export default async function Overview({ params }: { params: Promise<{ slug: str
           </div>}
         </div>
       </div>
+      {active && <ProjectShot slug={project.slug} version={project.active_deployment_id} thumbDeployment={thumb?.deployment_id ?? null} thumbAt={thumb?.at ?? null} />}
       {latest && latest.status === "ERROR" && active && latest.id !== active.id && (
         <div className="notice warn">Latest deployment #{latest.number} failed. The site is still serving #{active.number}. <Link href={`/dashboard/${project.slug}/deployments/${latest.number}`} style={{ textDecoration: "underline" }}>View logs</Link></div>
       )}

@@ -13,6 +13,7 @@ Built with Next.js 15 (App Router) + Postgres (Neon). Pure black, fully responsi
   - **Public**: injected into pages as `window.NUKE_ENV.NAME`
 - **Functions**: files in `api/` run on the server (like Vercel). `fetch("/api/x")` from your page just works
 - **Function logs** tab: every call, status, duration and `console.log` output
+- **Project screenshots**: every live project gets a preview picture on the dashboard, taken by a real headless Chromium on the server and stored in the database. It is retaken only when the live deployment changes, or with **Retake screenshot**
 - File editor, deploy hook URL (GitHub push webhook), clean URLs, custom `404.html`
 - Existing projects, env vars and secrets from earlier versions are migrated automatically
 
@@ -26,6 +27,8 @@ Copy `.env.example` to `.env.local` and fill in:
 | `SESSION_SECRET` | Random string, 16+ chars (`openssl rand -hex 32`) |
 | `NUKE_SECRETS_ENCRYPTION_KEY` | Random string, 32+ chars. Encrypts project variables. **Set once, never change** |
 | `GITHUB_TOKEN` | Optional, for private GitHub repos |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Optional. Needed for screenshots only if Vercel Deployment Protection is on |
+| `CHROME_EXECUTABLE_PATH` | Optional. Chrome/Chromium binary for screenshots on hosts where the bundled one cannot run |
 
 Tables are created automatically on first request.
 

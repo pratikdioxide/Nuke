@@ -223,3 +223,13 @@ a.item:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 } 
+/* project screenshots */
+.thumb { position: relative; aspect-ratio: 16 / 10; width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; transition: opacity .2s ease; }
+.thumb-skel { position: absolute; inset: 0; background: linear-gradient(100deg, #0f0f0f 30%, #1a1a1a 50%, #0f0f0f 70%); background-size: 200% 100%; animation: thumb-shimmer 1.2s linear infinite; }
+.thumb-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--faint); font-size: 12px; }
+.thumb-busy { position: absolute; top: 8px; right: 8px; }
+.spin { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--line-2); border-top-color: var(--text); border-radius: 50%; animation: thumb-spin .7s linear infinite; }
+.project .thumb { margin-bottom: 14px; }
+@keyframes thumb-spin { to { transform: rotate(360deg); } }
+@keyframes thumb-shimmer { to { background-position: -200% 0; } }
