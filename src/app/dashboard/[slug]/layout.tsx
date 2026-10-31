@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Tabs from "@/components/Tabs";
 import { getOrigin } from "@/lib/auth";
 import { getProject } from "@/lib/projects";
+import { siteAddress } from "@/lib/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,8 @@ export default async function ProjectLayout({ children, params }: { children: Re
   const { slug } = await params;
   const [project, origin] = await Promise.all([getProject(slug), getOrigin()]);
   if (!project) notFound();
-  const siteUrl = `/${project.slug}/`;
+  const site = siteAddress(origin.replace(/^https?:\/\//, ""), project.slug);
+  const siteUrl = site.href;
   return (
     <div className="project-workspace">
       <aside className="project-sidebar" aria-label={`${project.name} project navigation`}>
@@ -21,7 +23,7 @@ export default async function ProjectLayout({ children, params }: { children: Re
         <div className="project-identity">
           <div className="hint">Project</div>
           <h1>{project.name}</h1>
-          <a className="url mono" href={siteUrl} target="_blank" rel="noopener noreferrer">{origin.replace(/^https?:\/\//, "")}/{project.slug}</a>
+          <a className="url mono" href={siteUrl} target="_blank" rel="noopener noreferrer">{site.label}</a>
         </div>
         <Tabs slug={project.slug} />
         {project.active_deployment_id && (

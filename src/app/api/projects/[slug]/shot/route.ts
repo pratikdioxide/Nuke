@@ -67,7 +67,7 @@ export async function POST(req: Request, { params }: Ctx) {
     });
     const page = await browser.newPage();
     const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-    if (bypass) await page.setExtraHTTPHeaders({ "x-vercel-protection-bypass": bypass });
+    await page.setExtraHTTPHeaders({ "x-nuke-via": "internal", ...(bypass ? { "x-vercel-protection-bypass": bypass } : {}) });
 
     // Some pages never go fully quiet (polling, websockets): after the wait we shoot what is on screen.
     await page.goto(target, { waitUntil: "networkidle2", timeout: 25_000 }).catch((e: Error) => {

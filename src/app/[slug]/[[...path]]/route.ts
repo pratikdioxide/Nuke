@@ -3,7 +3,7 @@ import { q } from "@/lib/db";
 import { missingEnv } from "@/lib/auth";
 import { findFunction, runFunction } from "@/lib/functions";
 import { RequestBodyError, readBytesLimited } from "@/lib/request-body";
-import { slugError } from "@/lib/shared";
+import { SUBDOMAIN_ROOT, slugError } from "@/lib/shared";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -49,6 +49,17 @@ async function serve(req: NextRequest, ctx: Ctx, head: boolean) {
   } catch {
     return page(404, "Not found", "This page does not exist.");
   }
+
+  // Sites live on <slug>.<root>. A plain visit to <root>/<slug>/... is sent there; the Worker (and our own
+  // screenshot browser) mark their requests with x-nuke-via so they are served directly. Functions (api/) are never redirected.
+  const host = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").toLowerCase();
+  if (host === SUBDOMAIN_ROOT && !req.headers.get("x-nuke-via") && (req.method === "GET" || req.method === "HEAD")) {
+    const rest = pathname.slice(slug.length + 1);
+    if (rest !== "/api" && !rest.startsWith("/api/")) {
+      return Response.redirect(`https://${slug}.${SUBDOMAIN_ROOT}${rest || "/"}${req.nextUrl.search}`, 308);
+    }
+  }
+
   const trailing = pathname.endsWith("/") || rel === "";
   if (rel.includes("\0") || rel.includes("\\") || rel.split("/").some((s, i, a) => s === ".." || s === "." || (s === "" && i < a.length - 1))) {
     return page(404, "Not found", "This page does not exist.");

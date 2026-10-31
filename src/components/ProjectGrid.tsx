@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { formatBytes, timeAgo } from "@/lib/shared";
+import { formatBytes, siteAddress, timeAgo } from "@/lib/shared";
 import { StatusBadge } from "./ui";
 import SiteThumbnail from "./SiteThumbnail";
 import { captureThumbnail, markThumbFailed, needsThumbnail } from "@/lib/client/shot";
@@ -117,7 +117,7 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
               <Link href={`/dashboard/${p.slug}`} className="project-link">
               <SiteThumbnail slug={p.slug} thumbAt={p.thumb_at} deployed={p.version !== null} capturing={capturing === p.slug} failed={failed.has(p.slug)} />
               <h3>{p.name}</h3>
-              <div className="url mono">{host}/{p.slug}</div>
+              <div className="url mono">{siteAddress(host, p.slug).label}</div>
               <div className="meta">
                 <div className="meta-row">
                   {p.file_count != null && <span>{p.file_count} files · {formatBytes(Number(p.total_bytes))}</span>}
@@ -130,7 +130,7 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
               </div>
             </Link>
               {p.version !== null && (
-                <a href={`/${encodeURIComponent(p.slug)}`} target="_blank" rel="noopener noreferrer" className="visit-btn" aria-label={`Open ${p.name} website in a new tab`} title="Open website in new tab">
+                <a href={siteAddress(host, p.slug).href} target="_blank" rel="noopener noreferrer" className="visit-btn" aria-label={`Open ${p.name} website in a new tab`} title="Open website in new tab">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                 </a>
               )}

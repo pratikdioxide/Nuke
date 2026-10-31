@@ -10,6 +10,16 @@ export const RESERVED_SLUGS = new Set([
   "admin", "favicon", "robots", "sitemap", "nuke", "docs", "new", "settings",
 ]);
 
+/** The domain whose projects are also served as <name>.<domain> (needs the Cloudflare Worker). Override with NEXT_PUBLIC_SUBDOMAIN_ROOT. */
+export const SUBDOMAIN_ROOT = process.env.NEXT_PUBLIC_SUBDOMAIN_ROOT || "nuke.qzz.io";
+
+/** Where a project's site lives: <slug>.<host> on the subdomain domain, otherwise <host>/<slug>. */
+export function siteAddress(host: string, slug: string): { label: string; href: string } {
+  return host === SUBDOMAIN_ROOT
+    ? { label: `${slug}.${host}`, href: `https://${slug}.${host}/` }
+    : { label: `${host}/${slug}`, href: `/${slug}/` };
+}
+
 export function slugify(value: string): string {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
