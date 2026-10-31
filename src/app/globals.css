@@ -62,7 +62,14 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .grid .project { padding: 10px; }
   .grid .project .thumb { margin-bottom: 10px; }
-  .grid .project { position: relative; }
+  .grid .project h3 { font-size: 14px; }
+  .grid .project .url { font-size: 11px; }
+  .grid .project .meta { gap: 4px 10px; font-size: 11px; margin-top: 10px; }
+  .grid .project .meta .mono { display: none; }
+}
+.project { display: block; padding: 18px; transition: border-color .16s ease, background-color .16s ease, transform .16s ease; }
+.project:hover { border-color: #4a4a4a; background: var(--surface-2); transform: translateY(-2px); }
+.project { position: relative; }
 .project-link { display: block; color: inherit; }
 .project.project-private, .project.project-private:hover { border-color: #ef4444; }
 .project.project-private:hover { box-shadow: 0 0 0 1px rgba(239,68,68,.35); }
@@ -70,13 +77,6 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .visit-btn { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); transition: color .16s ease, background-color .16s ease, border-color .16s ease, transform .16s ease; }
 .visit-btn:hover { color: #000; background: #fff; border-color: #fff; transform: translate(1px, -1px); }
 @media (max-width: 640px) { .visit-btn { right: 8px; bottom: 8px; width: 26px; height: 26px; } .project .meta { padding-right: 32px; } }
-.project h3 { font-size: 14px; }
-  .grid .project .url { font-size: 11px; }
-  .grid .project .meta { gap: 4px 10px; font-size: 11px; margin-top: 10px; }
-  .grid .project .meta .mono { display: none; }
-}
-.project { display: block; padding: 18px; transition: border-color .16s ease, background-color .16s ease, transform .16s ease; }
-.project:hover { border-color: #4a4a4a; background: var(--surface-2); transform: translateY(-2px); }
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .url { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--faint); font-size: 12px; margin-top: 14px; }
