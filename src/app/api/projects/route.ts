@@ -1,7 +1,23 @@
 import { guard } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { parseEnvInput, saveEnv } from "@/lib/env-vars";
+import { listProjects } from "@/lib/projects";
 import { slugError } from "@/lib/shared";
+
+/** One page of project cards for the dashboard's infinite scroll: GET /api/projects?offset=12&q=search */
+export async function GET(req: Request) {
+  const denied = await guard(req);
+  if (denied) return denied;
+  const url = new URL(req.url);
+  const offset = Math.min(100_000, Math.max(0, Number(url.searchParams.get("offset")) || 0));
+  try {
+    const page = await listProjects({ offset, term: url.searchParams.get("q") ?? "" });
+    return Response.json(page, { headers: { "Cache-Control": "no-store" } });
+  } catch (e) {
+    console.error("list projects failed:", (e as Error).message);
+    return Response.json({ error: "Could not load projects." }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   const denied = await guard(req);

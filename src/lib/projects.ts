@@ -27,8 +27,15 @@ export type Deployment = {
   file_count: number; total_bytes: number; duration_ms: number; created_at: string;
 };
 
-export async function listProjects(): Promise<ProjectCard[]> {
-  const rows = await tx(async (client) => {
+/** How many project cards the dashboard loads at a time. */
+export const PROJECT_PAGE = 12;
+
+/** One page of project cards (newest first), plus how many projects match in total. `term` filters by name or URL name. */
+export async function listProjects(opts: { offset?: number; term?: string } = {}): Promise<{ projects: ProjectCard[]; total: number }> {
+  const offset = Math.max(0, Math.floor(opts.offset ?? 0));
+  const term = (opts.term ?? "").trim().slice(0, 80);
+  const like = term ? `%${term.replace(/[\\%_]/g, "\\$&")}%` : null;
+  const { rows, total } = await tx(async (client) => {
     await client.query("SET LOCAL statement_timeout = '8s'");
     const result = await client.query(`
       SELECT p.name, p.slug, p.git_repo,
@@ -39,15 +46,22 @@ export async function listProjects(): Promise<ProjectCard[]> {
       LEFT JOIN nuke_thumbs t ON t.project_id = p.id
       LEFT JOIN LATERAL (SELECT status, created_at FROM nuke_deployments WHERE project_id=p.id ORDER BY number DESC LIMIT 1) l ON true
       LEFT JOIN nuke_deployments a ON a.id = p.active_deployment_id
-      ORDER BY COALESCE(l.created_at, p.created_at) DESC`);
-    return result.rows as ProjectCardRow[];
+      WHERE ($1::text IS NULL OR p.name ILIKE $1 OR p.slug ILIKE $1)
+      ORDER BY COALESCE(l.created_at, p.created_at) DESC, p.id DESC
+      LIMIT $2 OFFSET $3`, [like, PROJECT_PAGE, offset]);
+    const count = await client.query(
+      "SELECT COUNT(*)::int AS n FROM nuke_projects p WHERE ($1::text IS NULL OR p.name ILIKE $1 OR p.slug ILIKE $1)", [like]);
+    return { rows: result.rows as ProjectCardRow[], total: count.rows[0].n as number };
   });
-  return rows.map((row) => ({
-    ...row,
-    latest_at: row.latest_at instanceof Date ? row.latest_at.toISOString() : row.latest_at,
-    total_bytes: row.total_bytes == null ? null : Number(row.total_bytes),
-    thumb_at: row.thumb_at ? new Date(row.thumb_at).getTime() : null,
-  }));
+  return {
+    total,
+    projects: rows.map((row) => ({
+      ...row,
+      latest_at: row.latest_at instanceof Date ? row.latest_at.toISOString() : row.latest_at,
+      total_bytes: row.total_bytes == null ? null : Number(row.total_bytes),
+      thumb_at: row.thumb_at ? new Date(row.thumb_at).getTime() : null,
+    })),
+  };
 }
 
 export async function listLandingProjects(): Promise<{ name: string; slug: string }[]> {

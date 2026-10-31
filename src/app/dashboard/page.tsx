@@ -7,14 +7,14 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Projects" };
 
 export default async function Dashboard() {
-  const [projects, origin] = await Promise.all([listProjects(), getOrigin()]);
+  const [{ projects, total }, origin] = await Promise.all([listProjects(), getOrigin()]);
   return (
     <>
       <div className="page-head">
-        <div><h1>Projects</h1><p className="sub">{projects.length} site{projects.length === 1 ? "" : "s"} hosted</p></div>
+        <div><h1>Projects</h1><p className="sub">{total} site{total === 1 ? "" : "s"} hosted</p></div>
         <Link href="/dashboard/new" className="btn btn-primary">+ New project</Link>
       </div>
-      <ProjectGrid projects={projects} host={origin.replace(/^https?:\/\//, "")} />
+      <ProjectGrid projects={projects} total={total} host={origin.replace(/^https?:\/\//, "")} />
     </>
   );
 }

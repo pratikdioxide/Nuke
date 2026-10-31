@@ -8,12 +8,14 @@ export default function DashboardLoading() {
         </div>
         <div className="skeleton" style={{ width: 132, height: 38 }} />
       </div>
-      <div className="skeleton-grid">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div className="skeleton-card" key={index}>
-            <div className="skeleton skeleton-line" style={{ width: "48%", height: 17 }} />
-            <div className="skeleton skeleton-line" style={{ width: "72%" }} />
-            <div className="skeleton skeleton-line" style={{ width: "58%", marginTop: 28 }} />
+      {/* same grid and card shape as the real project cards, so nothing jumps when they arrive */}
+      <div className="grid">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div className="card project" key={index}>
+            <div className="thumb"><div className="thumb-skel" /></div>
+            <div className="skeleton skeleton-line" style={{ width: "58%", height: 16, margin: "0 0 8px" }} />
+            <div className="skeleton skeleton-line" style={{ width: "80%", margin: "0 0 14px" }} />
+            <div className="skeleton skeleton-line" style={{ width: "64%", margin: 0 }} />
           </div>
         ))}
       </div>
