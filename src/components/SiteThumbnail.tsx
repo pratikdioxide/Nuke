@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { thumbUrl } from "@/lib/client/shot";
 
 type Props = {
@@ -20,6 +20,11 @@ export default function SiteThumbnail({ slug, thumbAt, capturing, failed, deploy
   const imgKey = `${slug}:${thumbAt}`;
   const loaded = loadedKey === imgKey;
   useEffect(() => setBroken(false), [slug, thumbAt]);
+  // A cached picture can finish loading before React hydrates, so its onLoad never reaches us and the
+  // placeholder would stay forever. Check the image itself as soon as it is attached.
+  const imgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img && img.complete && img.naturalWidth > 0) setLoadedKey(imgKey);
+  }, [imgKey]);
   const showImg = thumbAt !== null && !broken;
 
   return (
@@ -29,6 +34,7 @@ export default function SiteThumbnail({ slug, thumbAt, capturing, failed, deploy
           {!loaded && <div className="thumb-skel" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={imgRef}
             src={thumbUrl(slug, thumbAt!)}
             alt={`Screenshot of ${slug}`}
             loading="lazy"
