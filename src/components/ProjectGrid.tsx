@@ -116,10 +116,7 @@ export default function ProjectGrid({ projects, total: initialTotal, host }: { p
             <div key={p.slug} className={`card project${p.hide_from_landing ? " project-private" : ""}`}>
               <Link href={`/dashboard/${p.slug}`} className="project-link">
               <SiteThumbnail slug={p.slug} thumbAt={p.thumb_at} deployed={p.version !== null} capturing={capturing === p.slug} failed={failed.has(p.slug)} />
-              <h3>
-                {p.name}
-                {p.hide_from_landing && <span className="private-badge" title="Hidden from the landing page. Only visible after login.">🔒 Private</span>}
-              </h3>
+              <h3>{p.name}</h3>
               <div className="url mono">{host}/{p.slug}</div>
               <div className="meta">
                 <StatusBadge status={p.latest_status} />

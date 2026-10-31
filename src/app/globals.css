@@ -64,13 +64,12 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
   .grid .project .thumb { margin-bottom: 10px; }
   .grid .project { position: relative; }
 .project-link { display: block; color: inherit; }
-.visit-btn { position: absolute; top: 26px; right: 26px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; color: #fff; background: rgba(10,10,10,.72); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(6px); transition: background-color .16s ease, border-color .16s ease, transform .16s ease; }
-.visit-btn:hover { background: #fff; color: #000; border-color: #fff; transform: scale(1.06); }
-@media (max-width: 640px) { .visit-btn { top: 18px; right: 18px; width: 28px; height: 28px; } }
-.project-private { border-style: dashed; border-color: #3d3d3d; background: repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 8px, transparent 8px 16px), var(--surface); }
-.project-private:hover { border-color: #5a5a5a; }
-.project-private .thumb { opacity: .78; }
-.private-badge { margin-left: auto; flex: none; font-size: 10px; font-weight: 600; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; border: 1px solid #3d3d3d; color: var(--muted); background: rgba(255,255,255,.04); white-space: nowrap; }
+.project.project-private, .project.project-private:hover { border-color: #ef4444; }
+.project.project-private:hover { box-shadow: 0 0 0 1px rgba(239,68,68,.35); }
+.project .meta { padding-right: 40px; }
+.visit-btn { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); transition: color .16s ease, background-color .16s ease, border-color .16s ease, transform .16s ease; }
+.visit-btn:hover { color: #000; background: #fff; border-color: #fff; transform: translate(1px, -1px); }
+@media (max-width: 640px) { .visit-btn { right: 8px; bottom: 8px; width: 26px; height: 26px; } .project .meta { padding-right: 32px; } }
 .project h3 { font-size: 14px; }
   .grid .project .url { font-size: 11px; }
   .grid .project .meta { gap: 4px 10px; font-size: 11px; margin-top: 10px; }
