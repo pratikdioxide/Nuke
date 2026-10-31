@@ -28,12 +28,17 @@ function pool(): pg.Pool {
   if (!globalThis.__nukePool) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is not set.");
-    globalThis.__nukePool = new pg.Pool({
+    const created = new pg.Pool({
       connectionString: url,
       max: Number(process.env.PG_POOL_MAX) || 4,
       connectionTimeoutMillis: 8000,
+      idleTimeoutMillis: 10000,
       ssl: sslOption(url),
     });
+    // When the database drops an idle connection (it is restarted, suspended or a connection is killed),
+    // the pool reports it here. Without a handler Node treats it as a crash and the whole function dies.
+    created.on("error", (error) => console.error("[db] idle connection error:", error.message));
+    globalThis.__nukePool = created;
   }
   return globalThis.__nukePool;
 }
@@ -199,12 +204,20 @@ function ready(): Promise<void> {
     globalThis.__nukeReady = (async () => {
       const c = await pool().connect();
       try {
-        await c.query("SELECT pg_advisory_lock(727274)");
+        // A transaction-level lock is released by the database itself if this connection dies or stalls,
+        // so one stuck start-up can never block every later request (a session lock could).
+        await c.query("BEGIN");
+        await c.query("SET LOCAL lock_timeout = '20s'");
+        await c.query("SET LOCAL idle_in_transaction_session_timeout = '60s'");
+        await c.query("SELECT pg_advisory_xact_lock(727274)");
         await c.query(SCHEMA);
         await migrateLegacy(c);
         await migrateEnv(c);
+        await c.query("COMMIT");
+      } catch (e) {
+        await c.query("ROLLBACK").catch(() => {});
+        throw e;
       } finally {
-        await c.query("SELECT pg_advisory_unlock(727274)").catch(() => {});
         c.release();
       }
     })().catch((error) => {
