@@ -6,6 +6,15 @@ import { createDeploy, itemsFromInput, pushItems, textItem, type Item } from "@/
 
 type F = { path: string; hash: string; size: number };
 
+function DownloadIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" />
+    </svg>
+  );
+}
+const iconBtn = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 } as const;
+
 export default function FileEditor({ slug, files }: { slug: string; files: F[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(files.find((f) => f.path === "index.html")?.path ?? files[0]?.path ?? null);
@@ -112,7 +121,7 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
                 <input type="file" multiple hidden onChange={(e) => e.target.files && addUploads(e.target.files)} />
               </label>
               {files.length > 0 && (
-                <a className="btn btn-sm" href={`/api/projects/${slug}/download`} download title="Downloads the live version of every file (unsaved edits are not included)">Download all (.zip)</a>
+                <a className="btn btn-sm" style={iconBtn} href={`/api/projects/${slug}/download`} download title="Download all files as .zip (live version, unsaved edits not included)" aria-label="Download all files as zip"><DownloadIcon />ZIP</a>
               )}
             </div>
             {showAddFile && (
@@ -140,8 +149,8 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
               {selected && (
                 <div className="row">
                   {edits[selected] || !files.some((f) => f.path === selected)
-                    ? <button type="button" className="btn btn-sm" onClick={downloadSelected} disabled={!edits[selected]}>Download</button>
-                    : <a className="btn btn-sm" href={downloadUrl(selected)} download>Download</a>}
+                    ? <button type="button" className="btn btn-sm" style={iconBtn} onClick={downloadSelected} disabled={!edits[selected]} title="Download this file" aria-label={`Download ${selected}`}><DownloadIcon /></button>
+                    : <a className="btn btn-sm" style={iconBtn} href={downloadUrl(selected)} download title="Download this file" aria-label={`Download ${selected}`}><DownloadIcon /></a>}
                   <button type="button" className="btn btn-sm btn-danger" onClick={remove}>Delete</button>
                 </div>
               )}
