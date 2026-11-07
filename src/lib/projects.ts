@@ -7,6 +7,8 @@ export type Project = {
   /** scrypt hash of the site password; null = the site is public */
   site_password: string | null;
   pinned: boolean;
+  /** landing-page bubble tint as #rrggbb; null = default look */
+  bubble_color: string | null;
   active_deployment_id: number | null; git_repo: string | null; git_branch: string | null;
   git_dir: string | null; hook_token: string; created_at: string; updated_at: string;
 };
@@ -72,9 +74,9 @@ export async function listProjects(opts: { offset?: number; term?: string } = {}
   };
 }
 
-export async function listLandingProjects(): Promise<{ name: string; slug: string }[]> {
-  return q<{ name: string; slug: string }>(
-    "SELECT name, slug FROM nuke_projects WHERE active_deployment_id IS NOT NULL AND NOT hide_from_landing ORDER BY id",
+export async function listLandingProjects(): Promise<{ name: string; slug: string; color: string | null }[]> {
+  return q<{ name: string; slug: string; color: string | null }>(
+    "SELECT name, slug, bubble_color AS color FROM nuke_projects WHERE active_deployment_id IS NOT NULL AND NOT hide_from_landing ORDER BY id",
   );
 }
 

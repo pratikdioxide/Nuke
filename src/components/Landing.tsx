@@ -3,12 +3,18 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import LoginForm from "@/components/LoginForm";
 import { Logo } from "@/components/ui";
 
-type LandingProject = { name: string; slug: string };
-type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string };
+type LandingProject = { name: string; slug: string; color?: string | null };
+type Bubble = { x: number; y: number; r: number; vx: number; vy: number; name: string; slug: string; rgb: string | null };
 type Obstacle = { left: number; top: number; right: number; bottom: number; vx: number; vy: number };
 type Point = { x: number; y: number };
 
 const MAX_BUBBLE_SPEED = 44;
+
+/** "#3b82f6" -> "59,130,246" (null when there is no valid color, which keeps the default look). */
+function hexToRgb(hex: string | null | undefined): string | null {
+  if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return null;
+  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`;
+}
 
 function resolveCircleRect(bubble: Bubble, obstacle: Obstacle) {
   const nearestX = Math.max(obstacle.left, Math.min(bubble.x, obstacle.right));
@@ -152,9 +158,15 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
           bubble.x - bubble.r, bubble.y - bubble.r,
           bubble.x + bubble.r, bubble.y + bubble.r,
         );
-        gradient.addColorStop(0, "rgba(255,255,255,.18)");
-        gradient.addColorStop(0.48, "rgba(255,255,255,.045)");
-        gradient.addColorStop(1, "rgba(23,23,26,.96)");
+        if (bubble.rgb) {
+          gradient.addColorStop(0, `rgba(${bubble.rgb},.55)`);
+          gradient.addColorStop(0.48, `rgba(${bubble.rgb},.18)`);
+          gradient.addColorStop(1, "rgba(23,23,26,.96)");
+        } else {
+          gradient.addColorStop(0, "rgba(255,255,255,.18)");
+          gradient.addColorStop(0.48, "rgba(255,255,255,.045)");
+          gradient.addColorStop(1, "rgba(23,23,26,.96)");
+        }
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,.28)";
         ctx.shadowBlur = 16;
@@ -163,7 +175,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = "rgba(255,255,255,.58)";
+        ctx.strokeStyle = bubble.rgb ? `rgba(${bubble.rgb},.9)` : "rgba(255,255,255,.58)";
         ctx.stroke();
         ctx.restore();
         traceBubble(bubble.x, bubble.y, bubble.r * 0.76);
@@ -186,7 +198,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
       previousObstacleCenters.clear();
 
       const radius = (w <= 480 ? 62 : w <= 640 ? 68 : 82) / 2;
-      bubbles = (projects ?? []).map(({ name, slug }) => {
+      bubbles = (projects ?? []).map(({ name, slug, color }) => {
         let x = radius + Math.random() * Math.max(0, w - radius * 2);
         let y = radius + Math.random() * Math.max(0, h - radius * 2);
         for (let attempt = 0; attempt < 70; attempt++) {
@@ -199,7 +211,7 @@ function Bubbles({ projects }: { projects: LandingProject[] | null }) {
         }
         const angle = Math.random() * Math.PI * 2;
         const speed = 16 + Math.random() * 14;
-        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name, slug };
+        return { x, y, r: radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, name, slug, rgb: hexToRgb(color) };
       });
       draw();
     };

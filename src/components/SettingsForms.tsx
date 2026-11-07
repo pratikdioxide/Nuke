@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/upload";
 import CopyButton from "./CopyButton";
+import BubbleColorPicker from "./BubbleColorPicker";
 
 export function GeneralForm({ slug, name }: { slug: string; name: string }) {
   const router = useRouter();
@@ -28,9 +29,11 @@ export function GeneralForm({ slug, name }: { slug: string; name: string }) {
   );
 }
 
-export function LandingVisibilityForm({ slug, visible: initialVisible }: { slug: string; visible: boolean }) {
+export function LandingVisibilityForm({ slug, visible: initialVisible, color: initialColor = null }: { slug: string; visible: boolean; color?: string | null }) {
   const [visible, setVisible] = useState(initialVisible);
   const [savedVisible, setSavedVisible] = useState(initialVisible);
+  const [color, setColor] = useState<string | null>(initialColor);
+  const [savedColor, setSavedColor] = useState<string | null>(initialColor);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
@@ -43,20 +46,24 @@ export function LandingVisibilityForm({ slug, visible: initialVisible }: { slug:
         <span>Show this project on the landing page</span>
       </label>
       <p className="sub" style={{ margin: 0 }}>When hidden, its bubble is removed from the landing page. The project URL remains available.</p>
+      <div className="stack" style={{ gap: 8 }}>
+        <span>Bubble color</span>
+        <BubbleColorPicker value={color} onChange={(c) => { setColor(c); setMsg(""); }} />
+      </div>
       {error && <p className="error">{error}</p>}{msg && <p className="hint">{msg}</p>}
       <div>
-        <button className="btn btn-primary" disabled={busy || visible === savedVisible} onClick={async () => {
+        <button className="btn btn-primary" disabled={busy || (visible === savedVisible && color === savedColor)} onClick={async () => {
           setBusy(true); setError(""); setMsg("");
           try {
-            await api(`/api/projects/${encodeURIComponent(slug)}`, "PATCH", { hideFromLanding: !visible });
-            setSavedVisible(visible);
-            setMsg(visible ? "Project is visible on the landing page." : "Project is hidden from the landing page.");
+            await api(`/api/projects/${encodeURIComponent(slug)}`, "PATCH", { hideFromLanding: !visible, bubbleColor: color });
+            setSavedVisible(visible); setSavedColor(color);
+            setMsg("Saved.");
           } catch (e) {
             setError((e as Error).message);
           } finally {
             setBusy(false);
           }
-        }}>{busy ? "Saving…" : "Save visibility"}</button>
+        }}>{busy ? "Saving…" : "Save"}</button>
       </div>
     </div>
   );

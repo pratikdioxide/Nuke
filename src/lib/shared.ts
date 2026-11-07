@@ -20,6 +20,10 @@ export function siteAddress(host: string, slug: string): { label: string; href: 
     : { label: `${host}/${slug}`, href: `/${slug}/` };
 }
 
+/** Landing-page bubble colors. The default is no color (null): the bubble keeps its plain white/grey look. */
+export const BUBBLE_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
+export const isBubbleColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+
 export function slugify(value: string): string {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }

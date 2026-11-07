@@ -9,7 +9,7 @@ export default async function Home() {
   const missing = missingEnv();
   if (!missing.length && (await isAuthed())) redirect("/dashboard");
 
-  let projects: { name: string; slug: string }[] | null = null;
+  let projects: { name: string; slug: string; color: string | null }[] | null = null;
   if (process.env.DATABASE_URL) {
     try {
       projects = await listLandingProjects();

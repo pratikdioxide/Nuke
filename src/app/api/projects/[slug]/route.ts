@@ -1,7 +1,7 @@
 import { guard } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { getProject } from "@/lib/projects";
-import { slugError } from "@/lib/shared";
+import { isBubbleColor, slugError } from "@/lib/shared";
 import { MIN_SITE_PASSWORD, hashSitePassword } from "@/lib/site-password";
 
 type Ctx = { params: Promise<{ slug: string }> };
@@ -22,6 +22,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return Response.json({ error: `Use a password of ${MIN_SITE_PASSWORD}-200 characters.` }, { status: 400 });
     }
     await q("UPDATE nuke_projects SET site_password=$1 WHERE id=$2", [hashSitePassword(body.sitePassword), project.id]);
+  }
+  // Bubble color: a #rrggbb string, or null for the default look.
+  if (body.bubbleColor === null) {
+    await q("UPDATE nuke_projects SET bubble_color=NULL WHERE id=$1", [project.id]);
+  } else if (body.bubbleColor !== undefined) {
+    if (!isBubbleColor(body.bubbleColor)) return Response.json({ error: "Pick a valid color." }, { status: 400 });
+    await q("UPDATE nuke_projects SET bubble_color=$1 WHERE id=$2", [body.bubbleColor.toLowerCase(), project.id]);
   }
   if (!("name" in body) && !("slug" in body) && !("hideFromLanding" in body)) return Response.json({ ok: true });
 
