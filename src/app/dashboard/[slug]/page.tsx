@@ -34,6 +34,7 @@ export default async function Overview({ params }: { params: Promise<{ slug: str
           {active && <div className="row" style={{ marginTop: 16 }}>
             <Link className="btn btn-sm" href={`/dashboard/${project.slug}/deployments/${active.number}`}>View logs</Link>
             <RedeployButton slug={project.slug} number={active.number} />
+            <a className="btn btn-sm" href={`/api/projects/${project.slug}/download`} download>Download .zip</a>
           </div>}
         </div>
       </div>

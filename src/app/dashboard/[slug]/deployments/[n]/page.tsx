@@ -40,8 +40,17 @@ export default async function DeploymentPage({ params }: { params: Promise<{ slu
       {files.length > 0 && (
         <details className="card">
           <summary className="card-head" style={{ cursor: "pointer" }}><span>Files ({files.length})</span></summary>
+          <div className="card-pad" style={{ borderTop: "1px solid var(--line)" }}>
+            <a className="btn btn-sm" href={`/api/projects/${project.slug}/download?deployment=${d.number}`} download>Download all (.zip)</a>
+          </div>
           <div className="list mono" style={{ fontSize: 12.5 }}>
-            {files.map((f) => <div key={f.path} className="item" style={{ gridTemplateColumns: "1fr auto" }}><span style={{ overflowWrap: "anywhere" }}>{f.path}</span><span className="hint">{formatBytes(f.size)}</span></div>)}
+            {files.map((f) => (
+              <div key={f.path} className="item" style={{ gridTemplateColumns: "1fr auto auto" }}>
+                <span style={{ overflowWrap: "anywhere" }}>{f.path}</span>
+                <span className="hint">{formatBytes(f.size)}</span>
+                <a className="btn btn-sm" href={`/api/projects/${project.slug}/download?deployment=${d.number}&path=${encodeURIComponent(f.path)}`} download aria-label={`Download ${f.path}`}>Download</a>
+              </div>
+            ))}
           </div>
         </details>
       )}

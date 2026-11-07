@@ -87,7 +87,20 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     } catch (e) { setError((e as Error).message); setBusy(false); }
   }
 
+  // Downloads what you see: unsaved edits come from the browser, everything else from the server.
+  function downloadSelected() {
+    if (!selected) return;
+    const edited = edits[selected];
+    if (!edited) return;
+    const href = URL.createObjectURL(new Blob([edited.data as BlobPart]));
+    const a = document.createElement("a");
+    a.href = href; a.download = selected.split("/").pop() || "file";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }
+
   const text = selected && isTextPath(selected);
+  const downloadUrl = (p: string) => `/api/projects/${slug}/download?path=${encodeURIComponent(p)}`;
   return (
     <div className="stack">
       <div className="card">
@@ -98,6 +111,9 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
               <label className="btn btn-sm" style={{ cursor: "pointer" }}>Upload
                 <input type="file" multiple hidden onChange={(e) => e.target.files && addUploads(e.target.files)} />
               </label>
+              {files.length > 0 && (
+                <a className="btn btn-sm" href={`/api/projects/${slug}/download`} download title="Downloads the live version of every file (unsaved edits are not included)">Download all (.zip)</a>
+              )}
             </div>
             {showAddFile && (
               <form className="stack" style={{ padding: "0 4px 12px", gap: 8 }} onSubmit={(e) => { e.preventDefault(); addFile(); }}>
@@ -121,13 +137,22 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
           <div className="editor">
             <div className="bar">
               <span className="mono" style={{ overflowWrap: "anywhere" }}>{selected ?? "Select a file"}{selected && <span className="hint"> · {formatBytes(sizeOf(selected))}</span>}</span>
-              {selected && <button type="button" className="btn btn-sm btn-danger" onClick={remove}>Delete</button>}
+              {selected && (
+                <div className="row">
+                  {edits[selected] || !files.some((f) => f.path === selected)
+                    ? <button type="button" className="btn btn-sm" onClick={downloadSelected} disabled={!edits[selected]}>Download</button>
+                    : <a className="btn btn-sm" href={downloadUrl(selected)} download>Download</a>}
+                  <button type="button" className="btn btn-sm btn-danger" onClick={remove}>Delete</button>
+                </div>
+              )}
             </div>
             {!selected ? <p className="hint" style={{ padding: 20 }}>Pick a file on the left.</p>
               : !text ? (
                 <div style={{ padding: 20 }}>
                   <p className="hint">Binary file. Replace it with the Upload button.</p>
-                  <a className="btn btn-sm" href={`/${slug}/${selected}`} target="_blank" rel="noopener">Open</a>
+                  <div className="row">
+                    <a className="btn btn-sm" href={`/${slug}/${selected}`} target="_blank" rel="noopener">Open</a>
+                  </div>
                 </div>
               ) : (
                 <textarea className="textarea mono" spellCheck={false} value={loading ? "Loading…" : current ?? ""} readOnly={loading}
