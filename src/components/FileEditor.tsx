@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as RMouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { classifyPath, cleanPath, formatBytes, isTextPath } from "@/lib/shared";
+import { FileIcon, FolderIcon } from "@/components/FileIcon";
 import { createDeploy, itemsFromInput, pushItems, textItem, type Item } from "@/lib/client/upload";
 
 type F = { path: string; hash: string; size: number };
@@ -27,8 +28,6 @@ function Ico({ d, size = 15, w = 2, style }: { d: string[]; size?: number; w?: n
 }
 const P = {
   chevron: ["m9 6 6 6-6 6"],
-  folder: ["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"],
-  file: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5"],
   dots: ["M12 5h.01", "M12 12h.01", "M12 19h.01"],
   filePlus: ["M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z", "M14 3v5h5", "M12 12v6", "M9 15h6"],
   folderPlus: ["M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M12 11v6", "M9 14h6"],
@@ -301,7 +300,7 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
           <div className="nrow" onContextMenu={(e) => showMenu(e, target)}>
             <button type="button" className="node mono" style={{ paddingLeft: pad }} aria-expanded={isOpen} onClick={() => toggle(n.path)}>
               <Ico d={P.chevron} size={13} style={{ transition: "transform .16s ease", transform: isOpen ? "rotate(90deg)" : "none" }} />
-              <Ico d={P.folder} />
+              <FolderIcon name={n.name} open={isOpen} />
               <span className="nname">{n.name}</span>
             </button>
             <button type="button" className="nmenu" aria-label={`Actions for folder ${n.name}`} aria-haspopup="menu" onClick={(e) => showMenu(e, target, e.currentTarget.getBoundingClientRect())}><Ico d={P.dots} w={3} /></button>
@@ -316,7 +315,7 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     return (
       <div key={`f:${n.path}`} className="nrow" onContextMenu={(e) => showMenu(e, target)}>
         <button type="button" className={`node mono ${selected === n.path ? "sel" : ""}`} style={{ paddingLeft: pad + 21 }} onClick={() => openFile(n.path)}>
-          <Ico d={P.file} />
+          <FileIcon name={n.name} />
           <span className="nname">{n.name}</span>
           {isMod(n.path) && <span className="mod" role="img" aria-label="Modified" />}
         </button>
