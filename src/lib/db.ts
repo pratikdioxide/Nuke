@@ -121,17 +121,8 @@ CREATE TABLE IF NOT EXISTS nuke_env_vars (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (project_id, name)
 );
-CREATE TABLE IF NOT EXISTS nuke_fn_logs (
-  id BIGSERIAL PRIMARY KEY,
-  project_id INT NOT NULL REFERENCES nuke_projects(id) ON DELETE CASCADE,
-  ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  method TEXT NOT NULL,
-  path TEXT NOT NULL,
-  status INT NOT NULL,
-  duration_ms INT NOT NULL DEFAULT 0,
-  output TEXT NOT NULL DEFAULT ''
-);
-CREATE INDEX IF NOT EXISTS nuke_fn_logs_project_idx ON nuke_fn_logs(project_id, id DESC);
+-- function logs are no longer stored: remove the old table and everything in it
+DROP TABLE IF EXISTS nuke_fn_logs;
 CREATE TABLE IF NOT EXISTS nuke_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 -- the saved screenshot of each project (one row per project, kept apart so project list queries stay small)
 CREATE TABLE IF NOT EXISTS nuke_thumbs (

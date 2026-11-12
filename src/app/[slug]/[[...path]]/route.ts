@@ -132,9 +132,20 @@ async function serve(req: NextRequest, ctx: Ctx, head: boolean) {
 
   const bare = rel.replace(/\/$/, "");
   const candidates = trailing ? [`${bare ? bare + "/" : ""}index.html`] : [bare, `${bare}.html`, `${bare}/index.html`];
-  const file = (await q<{ path: string; hash: string; content_type: string }>(
+  let file = (await q<{ path: string; hash: string; content_type: string }>(
     `SELECT path, hash, content_type FROM nuke_files WHERE deployment_id=$1 AND path = ANY($2::text[])
      ORDER BY array_position($2::text[], path) LIMIT 1`, [proj.did, candidates]))[0];
+
+  // Single-page-app fallback: an address with no file extension (/home, /sessions/diwali-week) that matches no file
+  // gets the project's index.html with status 200, so the page's own router can show the right screen.
+  // A project that ships its own 404.html keeps the old behaviour (that page is sent with 404).
+  if (!file && !/\.[A-Za-z0-9]+$/.test(bare.split("/").pop() || "")) {
+    const hasCustom404 = (await q(`SELECT 1 FROM nuke_files WHERE deployment_id=$1 AND path='404.html'`, [proj.did])).length > 0;
+    if (!hasCustom404) {
+      file = (await q<{ path: string; hash: string; content_type: string }>(
+        `SELECT path, hash, content_type FROM nuke_files WHERE deployment_id=$1 AND path='index.html'`, [proj.did]))[0];
+    }
+  }
 
   if (!file) {
     const nf = (await q<{ data: Buffer }>(

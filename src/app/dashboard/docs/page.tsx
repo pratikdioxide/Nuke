@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         <li>Supported file types: <code>.js</code>, <code>.mjs</code>, <code>.cjs</code>, <code>.ts</code>. Both <code>import</code> and <code>require</code> work. Relative imports of your own files work.</li>
         <li>Packages you can import: {SUPPORTED_PACKAGES.map((p, i) => <span key={p}>{i ? ", " : ""}<code>{p}</code></span>)}. Nuke does not run <code>npm install</code>. To use another package, bundle it into your file (for example with esbuild) first.</li>
         <li>Limits: 25 seconds per call, 4 MB request body, 6 MB response, 120 calls per minute per visitor.</li>
-        <li>Open the <b>Logs</b> tab to see every call, its status, duration, and anything you <code>console.log</code>. Errors are shown there, never to visitors.</li>
+        <li>Function calls are not logged: Nuke stores no function logs. Errors are never shown to visitors.</li>
       </ul>
 
       <h2 id="example">Example: tracker with a database</h2>
@@ -100,8 +100,9 @@ export default async function handler(req, res) {
       <h2 id="manage">Editing &amp; rollback</h2>
       <ul>
         <li><b>Files</b> edits the live version. <b>Commit &amp; deploy</b> creates a new deployment.</li>
-        <li><b>Deployments</b> lists the last 15. <b>Promote to production</b> rolls back to any successful one.</li>
+        <li><b>Deployments</b> lists the last 10 (older ones are deleted automatically). <b>Promote to production</b> rolls back to any successful one.</li>
         <li>Clean URLs: <code>/site/about</code> serves <code>about.html</code> or <code>about/index.html</code>. A <code>404.html</code> is used for missing pages.</li>
+        <li>Single-page apps: if no file matches an address without a file extension (for example <code>/home</code> or <code>/sessions/diwali-week</code>) and the project has no <code>404.html</code>, Nuke serves <code>index.html</code> with status 200. Add a <code>404.html</code> to turn this off.</li>
       </ul>
 
       <h2 id="limits">Limits</h2>
@@ -116,10 +117,10 @@ export default async function handler(req, res) {
         <thead><tr><th>You see</th><th>Why and what to do</th></tr></thead>
         <tbody>
           <tr><td><code>404</code> on <code>/api/something</code></td><td>The <code>api/</code> folder was not deployed or the file name differs. Open the deployment logs: they list every function found. The <code>api</code> folder must be at the project root, next to <code>index.html</code>.</td></tr>
-          <tr><td>Env var is <code>undefined</code> in a function</td><td>It must exist in this project&apos;s Environment tab with the exact name. Check the Logs tab output.</td></tr>
+          <tr><td>Env var is <code>undefined</code> in a function</td><td>It must exist in this project&apos;s Environment tab with the exact name. Function output is not stored, so test the call and check the response.</td></tr>
           <tr><td><code>Package &quot;x&quot; is not available</code></td><td>Only the supported packages can be imported. Bundle other code into your file.</td></tr>
           <tr><td>Value shows &quot;cannot decrypt&quot;</td><td><code>NUKE_SECRETS_ENCRYPTION_KEY</code> changed. Restore the old key, or enter the value again.</td></tr>
-          <tr><td>500 from a function</td><td>Open <b>Logs</b>. The error and your <code>console.log</code> output are there.</td></tr>
+          <tr><td>500 from a function</td><td>Function logs are not stored. Reproduce the call and read the response, or run the function code locally.</td></tr>
         </tbody>
       </table>
     </div>

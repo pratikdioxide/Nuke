@@ -7,7 +7,7 @@ export default function Tabs({ slug }: { slug: string }) {
   const base = `/dashboard/${slug}`;
   const tabs = [
     ["Overview", base], ["Deployments", `${base}/deployments`], ["Files", `${base}/files`],
-    ["Environment", `${base}/env`], ["Logs", `${base}/logs`], ["Settings", `${base}/settings`],
+    ["Environment", `${base}/env`], ["Settings", `${base}/settings`],
   ];
   return (
     <nav className="project-links" aria-label="Project">

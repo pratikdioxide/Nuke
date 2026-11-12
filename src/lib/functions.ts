@@ -14,7 +14,7 @@ export const BUNDLED_PACKAGES = [neon, pg, ws].length;
 
 const TIMEOUT_MS = 25_000;
 const MAX_OUT = 6 * 1024 * 1024;
-const MAX_LOG = 8 * 1024;
+const MAX_LOG = 8 * 1024; // cap for captured stderr while the function runs (never saved)
 const CODE = /\.(js|mjs|cjs|ts|json)$/;
 const EXT_TRY = ["", ".js", ".mjs", ".cjs", ".ts", ".json", "/index.js", "/index.mjs", "/index.cjs", "/index.ts"];
 
@@ -90,16 +90,6 @@ function rateLimited(key: string): boolean {
 
 function json(status: number, body: unknown, headers: Record<string, string> = {}) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store", ...headers } });
-}
-
-async function logCall(projectId: number, method: string, path: string, status: number, ms: number, output: string) {
-  try {
-    await q("INSERT INTO nuke_fn_logs (project_id, method, path, status, duration_ms, output) VALUES ($1,$2,$3,$4,$5,$6)",
-      [projectId, method, path.slice(0, 300), status, ms, output.slice(0, MAX_LOG)]);
-    if (Math.random() < 0.1) {
-      await q(`DELETE FROM nuke_fn_logs WHERE project_id=$1 AND id < COALESCE((SELECT id FROM nuke_fn_logs WHERE project_id=$1 ORDER BY id DESC OFFSET 199 LIMIT 1), 0)`, [projectId]);
-    }
-  } catch { /* logging must never break a response */ }
 }
 
 type Call = {
@@ -179,6 +169,7 @@ export async function runFunction(c: Call): Promise<Response> {
     return json(500, { error: "The function could not start. Open Logs in the Nuke dashboard for details." });
   } finally {
     release();
-    await logCall(c.project.id, c.method, logPath, status, Date.now() - started, output.trim());
+    // Function logs are intentionally not stored anywhere.
+    void output; void status; void started; void logPath;
   }
 }

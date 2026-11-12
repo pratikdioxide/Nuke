@@ -3,7 +3,7 @@
 export const MAX_FILES = 1000;
 export const MAX_FILE_BYTES = 4 * 1024 * 1024; // browser upload limit per file (Vercel body limit ~4.5 MB)
 export const MAX_TOTAL_BYTES = 32 * 1024 * 1024;
-export const KEEP_DEPLOYMENTS = 15;
+export const KEEP_DEPLOYMENTS = 10;
 
 export const RESERVED_SLUGS = new Set([
   "dashboard", "login", "logout", "api", "_next", "static", "public", "assets",

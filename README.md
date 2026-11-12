@@ -12,9 +12,9 @@ Built with Next.js 15 (App Router) + Postgres (Neon). Pure black, fully responsi
   - **Server only** (default): encrypted in the database, never sent to browsers, readable only by your `api/` functions as `process.env.NAME`
   - **Public**: injected into pages as `window.NUKE_ENV.NAME`
 - **Functions**: files in `api/` run on the server (like Vercel). `fetch("/api/x")` from your page just works
-- **Function logs** tab: every call, status, duration and `console.log` output
+- Function calls are **not logged**: nothing from `api/` calls is stored in the database
 - **Project screenshots**: every live project gets a preview picture on the dashboard, taken by a real headless Chromium on the server and stored in the database. It is retaken only when the live deployment changes, or with **Retake screenshot**
-- File editor, deploy hook URL (GitHub push webhook), clean URLs, custom `404.html`
+- File editor, deploy hook URL (GitHub push webhook), clean URLs, custom `404.html`, single-page-app fallback (extensionless addresses with no matching file serve `index.html` with status 200 unless the project has its own `404.html`)
 - Existing projects, env vars and secrets from earlier versions are migrated automatically
 
 ## 1. Environment variables (for Nuke itself)
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 - Everything under `api/` is private: it runs, it is never downloadable
 
 ## Limits
-1000 files, 32 MB per project, 4 MB per file uploaded from the browser (Vercel request limit). The last 15 deployments per project are kept.
+1000 files, 32 MB per project, 4 MB per file uploaded from the browser (Vercel request limit). The last 10 deployments per project are kept (the live one is always kept).
 
 ## Security notes
 - `.env*`, `.npmrc`, key files, `.git` and `node_modules` are never published.

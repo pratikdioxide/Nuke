@@ -13,7 +13,7 @@ export default async function Deployments({ params }: { params: Promise<{ slug: 
   const list = await listDeployments(project.id);
   return (
     <div className="card">
-      <div className="card-head"><h2>Deployments</h2><span className="hint">Last 15 are kept</span></div>
+      <div className="card-head"><h2>Deployments</h2><span className="hint">Last 10 are kept</span></div>
       {list.length === 0 ? <p className="sub card-pad" style={{ margin: 0 }}>No deployments yet.</p> : (
         <div className="list">
           {list.map((d) => (
