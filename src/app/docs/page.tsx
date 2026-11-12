@@ -1,4 +1,4 @@
-import { DocPage } from "@/components/DocsContent";
+import { DocAll } from "@/components/DocsContent";
 
 export const dynamic = "force-dynamic";
 // The rest of the site is noindex; the docs are meant to be found, shared and read by people and AI tools.
@@ -9,5 +9,5 @@ export const metadata = {
 };
 
 export default function Docs() {
-  return <DocPage id="start" />;
+  return <DocAll />;
 }

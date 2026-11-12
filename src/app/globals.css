@@ -261,14 +261,14 @@ a.item:hover { background: var(--surface-2); }
 @keyframes thumb-shimmer { to { background-position: -200% 0; } }
 /* docs sidebar (reuses the project sidebar look) */
 .project-identity .docs-name { font-size: 17px; font-weight: 600; line-height: 1.2; margin: 6px 0 4px; }
+.doc-section { margin-bottom: 40px; scroll-margin-top: 76px; }
+.doc-section h2 { font-size: 19px; margin: 0 0 12px; }
 .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
 .doc-table th, .doc-table td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
 .doc-table th { background: var(--surface); color: var(--text); font-weight: 600; }
-.docs-pager { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
 @media (max-width: 767px) {
   .project-links.docs-links .tab:last-child { grid-column: auto; }
   .prose .doc-table { display: block; overflow-x: auto; }
-  .docs-pager .btn { flex: 1 1 100%; white-space: normal; text-align: center; }
 }
 
 /* file tree: folders, row menu, right-click menu, name dialog */

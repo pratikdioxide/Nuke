@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SUPPORTED_PACKAGES } from "@/lib/shared";
 
 export type DocId = "start" | "env" | "functions" | "example" | "git" | "manage" | "limits" | "fix";
@@ -13,8 +12,6 @@ export const DOC_SECTIONS: { id: DocId; label: string; blurb: string }[] = [
   { id: "limits", label: "Limits", blurb: "File counts, sizes and reserved names." },
   { id: "fix", label: "Troubleshooting", blurb: "Common problems and how to fix them." },
 ];
-
-export const docHref = (id: DocId) => (id === "start" ? "/docs" : `/docs/${id}`);
 
 function DocBody({ id }: { id: DocId }) {
   switch (id) {
@@ -149,21 +146,18 @@ export default async function handler(req, res) {
   }
 }
 
-export function DocPage({ id }: { id: DocId }) {
-  const i = DOC_SECTIONS.findIndex((s) => s.id === id);
-  const s = DOC_SECTIONS[i];
-  const prev = DOC_SECTIONS[i - 1];
-  const next = DOC_SECTIONS[i + 1];
+export function DocAll() {
   return (
     <div className="prose page-transition">
       <div className="page-head">
-        <div><h1>{s.label}</h1><p className="sub">{s.blurb}</p></div>
+        <div><h1>Docs</h1><p className="sub">Everything about hosting, secrets and functions.</p></div>
       </div>
-      <DocBody id={id} />
-      <nav className="docs-pager" aria-label="More sections">
-        {prev ? <Link href={docHref(prev.id)} className="btn">Previous: {prev.label}</Link> : <span />}
-        {next ? <Link href={docHref(next.id)} className="btn">Next: {next.label}</Link> : <span />}
-      </nav>
+      {DOC_SECTIONS.map((s) => (
+        <section key={s.id} id={s.id} className="doc-section" aria-labelledby={`${s.id}-h`}>
+          <h2 id={`${s.id}-h`}>{s.id === "example" ? "Example: tracker with a database" : s.label}</h2>
+          <DocBody id={s.id} />
+        </section>
+      ))}
     </div>
   );
 }

@@ -53,6 +53,7 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
   const [menu, setMenu] = useState<Menu | null>(null);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [promptError, setPromptError] = useState("");
+  const [confirmDel, setConfirmDel] = useState<Target | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadDir = useRef("");
 
@@ -183,15 +184,17 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     if (selected) setSelected(remap(selected));
   }
   function deleteTarget(t: Target) {
+    setMenu(null);
+    setConfirmDel(t);
+  }
+  function doDelete(t: Target) {
+    setConfirmDel(null);
     if (t.kind === "file") {
-      if (!window.confirm(`Delete ${t.path}?`)) return;
       setWork((w) => { const n = { ...w }; delete n[t.path]; return n; });
       if (selected === t.path) setSelected(null);
       return;
     }
     const pre = `${t.path}/`;
-    const count = paths.filter((p) => p.startsWith(pre)).length;
-    if (!window.confirm(`Delete folder ${t.path}${count ? ` and the ${count} file${count === 1 ? "" : "s"} inside` : ""}?`)) return;
     const inside = (p: string) => p === t.path || p.startsWith(pre);
     setWork((w) => { const n: Work = {}; for (const [p, e] of Object.entries(w)) if (!inside(p)) n[p] = e; return n; });
     setEmptyDirs((s) => new Set([...s].filter((p) => !inside(p))));
@@ -281,11 +284,11 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     return () => { window.removeEventListener("keydown", key); window.removeEventListener("resize", close); window.removeEventListener("scroll", close, true); };
   }, [menu]);
   useEffect(() => {
-    if (!prompt) return;
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setPrompt(null); };
+    if (!prompt && !confirmDel) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { setPrompt(null); setConfirmDel(null); } };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [prompt]);
+  }, [prompt, confirmDel]);
 
   // ---------- render ----------
   function renderNode(n: TNode, depth: number): ReactNode {
@@ -357,7 +360,6 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
             </div>
             {paths.length === 0 && folderSet.size === 0 && <p className="hint" style={{ padding: 8 }}>No files yet. Deploy something first from the Overview tab, or add a file above.</p>}
             {tree.children.map((c) => renderNode(c, 0))}
-            <p className="hint" style={{ padding: "10px 8px 2px" }}>Right-click, or tap the dots, for rename, delete and new items.</p>
           </div>
           <div className="editor">
             <div className="bar">
@@ -401,6 +403,26 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
           <div className="ctx" role="menu" style={{ left: menu.x, top: menu.y }}>{menuItems(menu.target)}</div>
         </>
       )}
+      {confirmDel && (() => {
+        const t = confirmDel;
+        const count = t.kind === "folder" ? paths.filter((p) => p.startsWith(`${t.path}/`)).length : 0;
+        return (
+          <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDel(null); }}>
+            <div className="modal card card-pad stack" role="alertdialog" aria-modal="true" aria-label={`Delete ${t.path}`}>
+              <h2>{t.kind === "folder" ? "Delete folder?" : "Delete file?"}</h2>
+              <p className="hint" style={{ margin: 0, fontSize: 13, overflowWrap: "anywhere" }}>
+                <span className="mono" style={{ color: "var(--text)" }}>{t.path}</span>
+                {t.kind === "folder" && ` and the ${count} file${count === 1 ? "" : "s"} inside will be removed`}
+                {t.kind === "file" && " will be removed"} from the next deployment. Nothing goes live until you press Commit &amp; deploy, and Discard brings it back.
+              </p>
+              <div className="row">
+                <button type="button" className="btn btn-danger btn-sm" onClick={() => doDelete(t)}>Delete</button>
+                <button type="button" className="btn btn-sm" autoFocus onClick={() => setConfirmDel(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {prompt && (
         <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setPrompt(null); }}>
           <form className="modal card card-pad stack" role="dialog" aria-modal="true" aria-label={promptTitle} onSubmit={submitPrompt}>
