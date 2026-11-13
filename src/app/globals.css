@@ -75,8 +75,8 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 .project.project-private:hover { box-shadow: 0 0 0 1px rgba(239,68,68,.35); }
 .project .meta { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 8px; }
 .project .meta-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.project .meta-row-last { min-height: 28px; padding-right: 38px; justify-content: flex-start; flex-wrap: wrap; }
-.visit-btn { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); transition: color .16s ease, background-color .16s ease, border-color .16s ease, transform .16s ease; }
+.project .meta-row-last { min-height: 32px; padding-right: 84px; justify-content: flex-start; flex-wrap: wrap; }
+.visit-btn { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 600; line-height: 1; color: #000; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(0,0,0,.4); transition: background-color .16s ease, transform .16s ease, box-shadow .16s ease; }
 .pin-btn { position: absolute; top: 26px; right: 26px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; color: #d4d4d4; background: rgba(10,10,10,.72); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(6px); cursor: pointer; opacity: 0; transition: opacity .16s ease, color .16s ease, border-color .16s ease, background-color .16s ease; }
 .project:hover .pin-btn, .pin-btn:focus-visible, .pin-btn.on { opacity: 1; }
 .pin-btn:hover { color: #fbbf24; border-color: #fbbf24; }
@@ -84,14 +84,13 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 @media (hover: none) { .pin-btn { opacity: 1; } }
 @media (max-width: 639px) { .pin-btn { top: 18px; right: 18px; width: 26px; height: 26px; } }
 .lock-icon { flex: none; color: var(--muted); }
-.visit-btn:hover { color: #000; background: #fff; border-color: #fff; transform: translate(1px, -1px); }
-.visit-ico-mobile { display: none; }
+.visit-btn:hover { color: #000; background: #e9e9e9; transform: translate(1px, -1px); box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 @media (max-width: 640px) {
-  .visit-btn { right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 50%; color: #000; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.9); }
-  .visit-btn:hover, .visit-btn:active { color: #000; background: #f1f1f1; border-color: transparent; transform: scale(.94); }
-  .visit-ico-desktop { display: none; }
-  .visit-ico-mobile { display: block; }
+  .visit-btn { right: 8px; bottom: 8px; width: 30px; height: 30px; padding: 0; gap: 0; border-radius: 9px; }
+  .visit-btn:hover, .visit-btn:active { transform: scale(.94); }
+  .visit-text { display: none; }
   .project .meta-row-last { padding-right: 38px; }
+}
 }
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .url { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
