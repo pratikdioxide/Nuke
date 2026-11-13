@@ -91,7 +91,6 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
   .visit-text { display: none; }
   .project .meta-row-last { padding-right: 38px; }
 }
-}
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .url { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--faint); font-size: 12px; margin-top: 14px; }
