@@ -85,7 +85,14 @@ label.field { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 @media (max-width: 639px) { .pin-btn { top: 18px; right: 18px; width: 26px; height: 26px; } }
 .lock-icon { flex: none; color: var(--muted); }
 .visit-btn:hover { color: #000; background: #fff; border-color: #fff; transform: translate(1px, -1px); }
-@media (max-width: 640px) { .visit-btn { right: 8px; bottom: 8px; width: 26px; height: 26px; } .project .meta-row-last { padding-right: 32px; } }
+.visit-ico-mobile { display: none; }
+@media (max-width: 640px) {
+  .visit-btn { right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 50%; color: #000; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.9); }
+  .visit-btn:hover, .visit-btn:active { color: #000; background: #f1f1f1; border-color: transparent; transform: scale(.94); }
+  .visit-ico-desktop { display: none; }
+  .visit-ico-mobile { display: block; }
+  .project .meta-row-last { padding-right: 38px; }
+}
 .project h3 { margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .url { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--faint); font-size: 12px; margin-top: 14px; }
