@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent as RMouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { zipSync } from "fflate";
 import { classifyPath, cleanPath, formatBytes, isTextPath } from "@/lib/shared";
 import { FileIcon, FolderIcon } from "@/components/FileIcon";
 import { createDeploy, itemsFromInput, pushItems, textItem, type Item } from "@/lib/client/upload";
@@ -232,11 +233,43 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
   // Downloads what you see: unsaved edits come from the browser, everything else from the server.
   function downloadSelected() {
     if (!selected || !sel?.item) return;
-    const href = URL.createObjectURL(new Blob([sel.item.data as BlobPart]));
+    saveBlob(sel.item.data as BlobPart, baseOf(selected) || "file");
+  }
+
+  // Saves bytes from the browser as a file.
+  function saveBlob(data: BlobPart, name: string, type = "application/octet-stream") {
+    const href = URL.createObjectURL(new Blob([data], { type }));
     const a = document.createElement("a");
-    a.href = href; a.download = baseOf(selected) || "file";
+    a.href = href; a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }
+  // Bytes of one entry: unsaved content from the browser, otherwise the live copy from the server.
+  async function bytesOf(e: Entry): Promise<Uint8Array> {
+    if (e.item) return e.item.data;
+    if (!e.from) return new Uint8Array();
+    const res = await fetch(downloadUrl(e.from));
+    if (!res.ok) throw new Error(`Could not download "${e.from}".`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+  // Menu download: a file saves directly, a folder (or the whole project) saves as a .zip of what you see now.
+  async function downloadTarget(t: Target) {
+    setMenu(null);
+    setError("");
+    try {
+      if (t.kind === "file") {
+        const e = work[t.path];
+        if (!e) return;
+        saveBlob(new Uint8Array(await bytesOf(e)), baseOf(t.path) || "file");
+        return;
+      }
+      const pre = t.path ? `${t.path}/` : "";
+      const list = Object.entries(work).filter(([p]) => p.startsWith(pre));
+      if (!list.length) throw new Error("This folder has no files to download.");
+      const out: Record<string, Uint8Array> = {};
+      for (const [p, e] of list) out[p.slice(pre.length)] = await bytesOf(e);
+      saveBlob(new Uint8Array(zipSync(out)), `${t.path ? baseOf(t.path) : slug}.zip`, "application/zip");
+    } catch (err) { setError((err as Error).message); }
   }
 
   // ---------- menu + dialog ----------
@@ -244,7 +277,7 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     e.preventDefault();
     e.stopPropagation();
     const W = 196;
-    const H = (target.kind === "file" ? 2 : target.kind === "folder" ? 5 : 3) * 40 + 20;
+    const H = (target.kind === "file" ? 3 : target.kind === "folder" ? 6 : 4) * 40 + 20;
     let x = e.clientX, y = e.clientY;
     if (anchor) { x = anchor.right - W; y = anchor.bottom + 4; if (y + H > window.innerHeight - 8) y = anchor.top - H - 4; }
     x = Math.max(8, Math.min(x, window.innerWidth - W - 8));
@@ -331,15 +364,16 @@ export default function FileEditor({ slug, files }: { slug: string; files: F[] }
     const item = (icon: string[], label: string, fn: () => void, danger = false) => (
       <button key={label} type="button" role="menuitem" className={danger ? "danger" : ""} onClick={fn}><Ico d={icon} />{label}</button>
     );
-    if (t.kind === "file") return [item(P.pencil, "Rename", () => ask("rename", t)), item(P.trash, "Delete file", () => { setMenu(null); deleteTarget(t); }, true)];
+    if (t.kind === "file") return [item(P.download, "Download", () => downloadTarget(t)), item(P.pencil, "Rename", () => ask("rename", t)), item(P.trash, "Delete file", () => { setMenu(null); deleteTarget(t); }, true)];
     if (t.kind === "folder") return [
       item(P.filePlus, "New file", () => ask("file", t)),
       item(P.folderPlus, "New folder", () => ask("folder", t)),
       item(P.upload, "Upload here", () => pickUpload(t.path)),
+      item(P.download, "Download as .zip", () => downloadTarget(t)),
       item(P.pencil, "Rename", () => ask("rename", t)),
       item(P.trash, "Delete folder", () => { setMenu(null); deleteTarget(t); }, true),
     ];
-    return [item(P.filePlus, "New file", () => ask("file", t)), item(P.folderPlus, "New folder", () => ask("folder", t)), item(P.upload, "Upload", () => pickUpload(""))];
+    return [item(P.filePlus, "New file", () => ask("file", t)), item(P.folderPlus, "New folder", () => ask("folder", t)), item(P.upload, "Upload", () => pickUpload("")), item(P.download, "Download all as .zip", () => downloadTarget(t))];
   };
 
   const root: Target = { kind: "root", path: "" };
